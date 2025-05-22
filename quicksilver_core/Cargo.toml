@@ -1,0 +1,9 @@
+[package]
+name = "quicksilver_core"
+version = "0.1.0"
+license.workspace = true
+edition.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]

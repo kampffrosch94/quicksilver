@@ -1,0 +1,15 @@
+[workspace]
+resolver = "3"
+members = [ 
+    "quicksilver_core", 
+]
+
+[workspace.package]
+license = "MIT OR Apache-2.0"
+edition = "2024"
+authors = ["kampffrosch94"]
+repository = "https://github.com/kampffrosch94/quicksilver"
+
+[profile.dev.package]
+insta.opt-level = 3
+similar.opt-level = 3
