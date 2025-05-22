@@ -268,4 +268,57 @@ mod tests {
         assert_eq!(my_data.location.y, 200);
         assert_eq!(my_data.is_active, 0);
     }
+
+    impl<'a> StructReflection<'a> {
+        /// Serializes the reflected struct data into a JSON string.
+        /// This implementation manually constructs the JSON string.
+        pub fn to_json_string(&self) -> String {
+            let mut json_parts = Vec::new();
+            for field in &self.fields {
+                let field_name = format!("\"{}\"", field.name);
+                let field_value = match &field.ty {
+                    FieldTypeReflection::I32(val) => format!("{}", **val),
+                    FieldTypeReflection::U32(val) => format!("{}", **val),
+                    FieldTypeReflection::F32(val) => format!("{}", **val),
+                    FieldTypeReflection::String(val) => {
+                        // Escape double quotes and backslashes in the string value
+                        let escaped_val = val.replace("\\", "\\\\").replace("\"", "\\\"");
+                        format!("\"{}\"", escaped_val)
+                    }
+                    FieldTypeReflection::Struct(s_ref) => s_ref.to_json_string(), // Recursive call for nested structs
+                    _ => todo!(),
+                };
+                json_parts.push(format!("{}:{}", field_name, field_value));
+            }
+            format!("{{{}}}", json_parts.join(","))
+        }
+    }
+
+    #[test]
+    fn test_json_serialization() {
+        let mut my_data = MyData {
+            id: 789,
+            name: "Another \"Test\" String with \\backslashes\\".to_string(),
+            value: 123.45,
+            location: Point { x: -5, y: 30 },
+            is_active: 1,
+        };
+
+        let reflected_data = reflect(&mut my_data);
+        let json_string = reflected_data.to_json_string();
+
+        let expected_json = r#"{"id":789,"name":"Another \"Test\" String with \\backslashes\\","value":123.45,"location":{"x":-5,"y":30},"is_active":1}"#;
+
+        // Note: Floating point comparisons can be tricky. For exact string match,
+        // ensure the float serialization matches exactly. In real apps, you'd parse
+        // the JSON and compare the numerical values with a tolerance.
+        assert_eq!(json_string, expected_json);
+
+        // Test with a modified value to ensure it serializes correctly
+        my_data.value = 100.0;
+        let reflected_data_modified = reflect(&mut my_data);
+        let json_string_modified = reflected_data_modified.to_json_string();
+        let expected_json_modified = r#"{"id":789,"name":"Another \"Test\" String with \\backslashes\\","value":100,"location":{"x":-5,"y":30},"is_active":1}"#;
+        assert_eq!(json_string_modified, expected_json_modified);
+    }
 }
