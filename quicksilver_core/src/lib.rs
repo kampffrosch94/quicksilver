@@ -1,5 +1,5 @@
 #[non_exhaustive]
-enum Type {
+pub enum Type {
     I32,
     U32,
     F32,
@@ -43,17 +43,51 @@ pub struct StructReflection<'a> {
 }
 
 pub fn reflect<T: Reflection>(val: &mut T) -> StructReflection<'_> {
+    reflect_inner(val as *mut T as *mut u8, T::MIRROR)
+}
+
+pub fn reflect_inner(val: *mut u8, mirror: &Struct) -> StructReflection<'_> {
     let mut fields: Vec<FieldReflection> = Vec::new();
-    for field in T::MIRROR.fields {
+    for field in mirror.fields {
         match field.ty {
             Type::I32 => {
                 let value = unsafe {
-                    let ptr = (val as *mut T as *mut u8).add(field.offset) as *mut i32;
+                    let ptr = val.add(field.offset) as *mut i32;
                     &mut *ptr
                 };
                 fields.push(FieldReflection {
                     name: field.name,
                     ty: FieldTypeReflection::I32(value),
+                });
+            }
+            Type::U32 => {
+                let value = unsafe {
+                    let ptr = val.add(field.offset) as *mut u32;
+                    &mut *ptr
+                };
+                fields.push(FieldReflection {
+                    name: field.name,
+                    ty: FieldTypeReflection::U32(value),
+                });
+            }
+            Type::F32 => {
+                let value = unsafe {
+                    let ptr = val.add(field.offset) as *mut f32;
+                    &mut *ptr
+                };
+                fields.push(FieldReflection {
+                    name: field.name,
+                    ty: FieldTypeReflection::F32(value),
+                });
+            }
+            Type::String => {
+                let value = unsafe {
+                    let ptr = val.add(field.offset) as *mut String;
+                    &mut *ptr
+                };
+                fields.push(FieldReflection {
+                    name: field.name,
+                    ty: FieldTypeReflection::String(value),
                 });
             }
             _ => {
@@ -63,5 +97,3 @@ pub fn reflect<T: Reflection>(val: &mut T) -> StructReflection<'_> {
     }
     StructReflection { fields }
 }
-
-
