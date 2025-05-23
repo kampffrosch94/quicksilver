@@ -1,3 +1,5 @@
+use std::{collections::HashMap, marker::PhantomData};
+
 #[non_exhaustive]
 pub enum Type {
     I32,
@@ -321,4 +323,18 @@ mod tests {
         let expected_json_modified = r#"{"id":789,"name":"Another \"Test\" String with \\backslashes\\","value":100,"location":{"x":-5,"y":30},"is_active":1}"#;
         assert_eq!(json_string_modified, expected_json_modified);
     }
+
+    struct Veccer<T> {
+        _phantom: PhantomData<T>,
+    }
+
+    impl<T: Reflection> Veccer<T> {
+        fn create() -> *mut u8 {
+            let v: Vec<T> = Vec::new();
+            let b = Box::new(v);
+            Box::into_raw(b) as *mut u8
+        }
+    }
+
+    const FOO: fn() -> *mut u8 = Veccer::<Point>::create;
 }
