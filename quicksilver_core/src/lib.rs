@@ -139,7 +139,7 @@ mod tests {
         const MIRROR: &'static Struct = &Struct {
             name: "Point",
             size: size_of::<Self>(),
-            align: size_of::<Self>(),
+            align: align_of::<Self>(),
             fields: &[
                 Field {
                     name: "x",
@@ -168,7 +168,7 @@ mod tests {
         const MIRROR: &'static Struct = &Struct {
             name: "MyData",
             size: size_of::<Self>(),
-            align: size_of::<Self>(),
+            align: align_of::<Self>(),
             fields: &[
                 Field {
                     name: "id",

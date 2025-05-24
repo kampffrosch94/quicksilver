@@ -141,7 +141,7 @@ mod test {
         const MIRROR: &'static Struct = &Struct {
             name: "Point",
             size: size_of::<Self>(),
-            align: size_of::<Self>(),
+            align: align_of::<Self>(),
             fields: &[
                 Field {
                     name: "x",
@@ -169,7 +169,7 @@ mod test {
         const MIRROR: &'static Struct = &Struct {
             name: "MyData",
             size: size_of::<Self>(),
-            align: size_of::<Self>(),
+            align: align_of::<Self>(),
             fields: &[
                 Field {
                     name: "id",
@@ -225,14 +225,14 @@ mod test {
     struct VecHolder {
         name: String,
         age: i32,
-        values: Vec<i32>,
+        values: Vec<Point>,
     }
 
     impl Reflection for VecHolder {
         const MIRROR: &'static Struct = &Struct {
             name: "VecHolder",
             size: size_of::<Self>(),
-            align: size_of::<Self>(),
+            align: align_of::<Self>(),
             fields: &[
                 Field {
                     name: "name",
@@ -247,8 +247,8 @@ mod test {
                 Field {
                     name: "values",
                     ty: Type::Vec(VecType {
-                        element: &Type::I32,
-                        vtable: VecVtableCreator::<i32>::VTABLE,
+                        element: &Type::Struct(Point::MIRROR),
+                        vtable: VecVtableCreator::<Point>::VTABLE,
                     }),
                     offset: mem::offset_of!(Self, values),
                 },
@@ -261,10 +261,15 @@ mod test {
         let mut val = VecHolder {
             name: "Kampffrosch".to_string(),
             age: 30,
-            values: vec![1, 2, 3, 4, 5],
+            values: vec![
+                Point { x: 1, y: 2 },
+                Point { x: 2, y: 4 },
+                Point { x: 3, y: 6 },
+            ],
         };
         let s = reflect(&mut val).to_json_string();
         let val2 = from_json::<VecHolder>(&s);
         assert_eq!(val, val2);
+        dbg!(&val2)
     }
 }
