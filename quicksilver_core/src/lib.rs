@@ -66,7 +66,7 @@ pub enum ValueReflection<'a> {
 #[repr(C)]
 pub struct FieldReflection<'a> {
     pub name: &'a str,
-    pub ty: ValueReflection<'a>,
+    pub value: ValueReflection<'a>,
 }
 
 #[repr(C)]
@@ -86,7 +86,7 @@ pub unsafe fn reflect_struct(base: *mut u8, mirror: &Struct) -> StructReflection
             let ptr = base.add(field.offset);
             fields.push(FieldReflection {
                 name: field.name,
-                ty: reflect_value(ptr, &field.ty),
+                value: reflect_value(ptr, &field.ty),
             });
         }
     }
@@ -96,7 +96,7 @@ pub unsafe fn reflect_struct(base: *mut u8, mirror: &Struct) -> StructReflection
     }
 }
 
-pub fn reflect_value(ptr: *mut u8, ty: &Type) -> ValueReflection {
+pub unsafe fn reflect_value(ptr: *mut u8, ty: &Type) -> ValueReflection {
     match ty {
         Type::I32 => {
             let value = unsafe { &mut *(ptr as *mut i32) };
@@ -216,7 +216,7 @@ mod tests {
         // Test 'id' field
         let id_field = &mut reflected_data.fields[0];
         assert_eq!(id_field.name, "id");
-        if let ValueReflection::U32(id_ref) = &mut id_field.ty {
+        if let ValueReflection::U32(id_ref) = &mut id_field.value {
             assert_eq!(**id_ref, 123);
             **id_ref = 456; // Modify through reflection
         } else {
@@ -226,7 +226,7 @@ mod tests {
         // Test 'name' field
         let name_field = &mut reflected_data.fields[1];
         assert_eq!(name_field.name, "name");
-        if let ValueReflection::String(name_ref) = &mut name_field.ty {
+        if let ValueReflection::String(name_ref) = &mut name_field.value {
             assert_eq!(**name_ref, "Test Data");
             **name_ref = "Modified Name".to_string(); // Modify through reflection
         } else {
@@ -236,7 +236,7 @@ mod tests {
         // Test 'value' field
         let value_field = &mut reflected_data.fields[2];
         assert_eq!(value_field.name, "value");
-        if let ValueReflection::F32(value_ref) = &mut value_field.ty {
+        if let ValueReflection::F32(value_ref) = &mut value_field.value {
             assert_eq!(**value_ref, 42.5);
             **value_ref = 99.9; // Modify through reflection
         } else {
@@ -246,13 +246,13 @@ mod tests {
         // Test 'location' field (nested struct)
         let location_field = &mut reflected_data.fields[3];
         assert_eq!(location_field.name, "location");
-        if let ValueReflection::Struct(point_reflection) = &mut location_field.ty {
+        if let ValueReflection::Struct(point_reflection) = &mut location_field.value {
             assert_eq!(point_reflection.fields.len(), 2);
 
             // Test 'location.x'
             let x_field = &mut point_reflection.fields[0];
             assert_eq!(x_field.name, "x");
-            if let ValueReflection::I32(x_ref) = &mut x_field.ty {
+            if let ValueReflection::I32(x_ref) = &mut x_field.value {
                 assert_eq!(**x_ref, 10);
                 **x_ref = 100; // Modify through reflection
             } else {
@@ -262,7 +262,7 @@ mod tests {
             // Test 'location.y'
             let y_field = &mut point_reflection.fields[1];
             assert_eq!(y_field.name, "y");
-            if let ValueReflection::I32(y_ref) = &mut y_field.ty {
+            if let ValueReflection::I32(y_ref) = &mut y_field.value {
                 assert_eq!(**y_ref, 20);
                 **y_ref = 200; // Modify through reflection
             } else {
@@ -275,7 +275,7 @@ mod tests {
         // Test 'is_active' field
         let is_active_field = &mut reflected_data.fields[4];
         assert_eq!(is_active_field.name, "is_active");
-        if let ValueReflection::I32(is_active_ref) = &mut is_active_field.ty {
+        if let ValueReflection::I32(is_active_ref) = &mut is_active_field.value {
             assert_eq!(**is_active_ref, 1);
             **is_active_ref = 0; // Modify through reflection
         } else {

@@ -24,18 +24,6 @@ impl JsonWalker<'_> {
     }
 
     #[track_caller]
-    pub fn consume_either(&mut self, a: char, b: char) {
-        let Self { chars, .. } = self;
-        match chars.next() {
-            Some(var) if var == a => {}
-            Some(var) if var == b => {}
-            other @ _ => {
-                assert!(false, "Expected {a} or {b} got {other:?}")
-            }
-        }
-    }
-
-    #[track_caller]
     pub fn consume_maybe(&mut self, c: char) {
         let Self { chars, .. } = self;
         if peek(chars) == c {

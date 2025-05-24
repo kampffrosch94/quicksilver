@@ -6,26 +6,41 @@ use parser::JsonWalker;
 use crate::{Reflection, Struct, StructReflection, Type, ValueReflection};
 
 impl<'a> StructReflection<'a> {
-    pub fn to_json_string(&self) -> String {
+    pub fn to_json_string(&mut self) -> String {
         let mut json_parts = Vec::new();
-        for field in &self.fields {
+        for field in &mut self.fields {
             let field_name = format!("\"{}\"", field.name);
-            let field_value = match &field.ty {
-                ValueReflection::I32(val) => format!("{}", **val),
-                ValueReflection::U32(val) => format!("{}", **val),
-                ValueReflection::F32(val) => format!("{}", **val),
-                ValueReflection::String(val) => {
-                    let escaped_val = val.replace(r"\", r"\\").replace(r#"""#, r#"\""#);
-                    format!("\"{}\"", escaped_val)
-                }
-                ValueReflection::Struct(s_ref) => s_ref.to_json_string(),
-                ValueReflection::Vec(vec_reflection) => {
-                    todo!()
-                }
-            };
+            let field_value = value_to_json(&mut field.value);
             json_parts.push(format!("{}:{}", field_name, field_value));
         }
         format!("{{{}}}", json_parts.join(","))
+    }
+}
+
+pub fn value_to_json(vr: &mut ValueReflection) -> String {
+    match vr {
+        ValueReflection::I32(val) => format!("{}", **val),
+        ValueReflection::U32(val) => format!("{}", **val),
+        ValueReflection::F32(val) => format!("{}", **val),
+        ValueReflection::String(val) => {
+            let escaped_val = val.replace(r"\", r"\\").replace(r#"""#, r#"\""#);
+            format!("\"{}\"", escaped_val)
+        }
+        ValueReflection::Struct(s_ref) => s_ref.to_json_string(),
+        ValueReflection::Vec(vec_reflection) => {
+            let mut ret = "[".to_string();
+            let len = vec_reflection.len();
+            let mut first = true;
+            for i in 0..len {
+                if !first {
+                    ret.push(',');
+                }
+                ret.push_str(&value_to_json(&mut vec_reflection.get(i)));
+                first = false;
+            }
+            ret.push(']');
+            ret
+        }
     }
 }
 
@@ -113,7 +128,7 @@ unsafe fn deserialize_field(walker: &mut JsonWalker, base: *mut u8, ty: &Type) {
 
 #[cfg(test)]
 mod test {
-    use std::{any::type_name, mem};
+    use std::mem;
 
     use crate::{json::from_json, vec::VecVtableCreator, *};
     #[derive(Debug, PartialEq)]
@@ -195,7 +210,7 @@ mod test {
             is_active: 1,
         };
 
-        let reflected_data = reflect(&mut my_data);
+        let mut reflected_data = reflect(&mut my_data);
         let json_string = reflected_data.to_json_string();
 
         let expected_json = r#"{"id":789,"name":"Another \"Test\" String with \\backslashes\\","value":123.45,"location":{"x":-5,"y":30},"is_active":1}"#;

@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::{Reflection, Type, ValueReflection};
+use crate::{Reflection, Type, ValueReflection, reflect_value};
 
 #[derive(Debug)]
 pub struct VecVtable {
@@ -103,7 +103,9 @@ impl VecReflection<'_> {
     }
 
     pub fn get(&mut self, index: usize) -> ValueReflection {
-        let ptr = unsafe { (self.vtable.get_elem)(self.ptr, index) };
-        todo!()
+        unsafe {
+            let ptr = (self.vtable.get_elem)(self.ptr, index);
+            reflect_value(ptr, &self.element)
+        }
     }
 }
