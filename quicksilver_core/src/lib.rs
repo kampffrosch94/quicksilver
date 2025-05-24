@@ -1,6 +1,7 @@
-use std::marker::PhantomData;
+use vec::VecVtable;
 
 pub mod json;
+pub mod vec;
 
 pub enum Type {
     I32,
@@ -116,62 +117,10 @@ pub fn reflect_inner(val: *mut u8, mirror: &Struct) -> StructReflection<'_> {
     StructReflection { fields }
 }
 
-pub struct VecVtable {
-    /// creates the Vec of current Type at the pointer coordinate
-    /// returns pointer to the first element
-    pub new_at: unsafe fn(ptr: *mut u8, capacity: usize) -> *mut u8,
-    /// set len
-    /// same as Vec::set_len, just type erased
-    pub set_len: unsafe fn(ptr: *mut u8, len: usize),
-    /// grows Vec to new capacity, like Vec::reserve
-    /// returns pointer to the first element
-    pub reserve: unsafe fn(ptr: *mut u8, additonal: usize) -> *mut u8,
-}
-
-pub struct VecVtableCreator<T> {
-    _phantom: PhantomData<T>,
-}
-
-impl VecVtableCreator<i32> {
-    pub const VTABLE: VecVtable = VecVtable {
-        new_at: Self::new_at,
-        set_len: Self::set_len,
-        reserve: Self::reserve,
-    };
-
-    unsafe fn new_at(ptr: *mut u8, capacity: usize) -> *mut u8 {
-        let mut v: Vec<i32> = Vec::with_capacity(capacity);
-        let ptr = ptr as *mut Vec<i32>;
-        unsafe {
-            let out = v.as_mut_ptr();
-            ptr.write(v);
-            out as *mut u8
-        }
-    }
-
-    unsafe fn set_len(ptr: *mut u8, len: usize) {
-        let ptr = ptr as *mut Vec<i32>;
-        unsafe {
-            let val = &mut *ptr;
-            val.set_len(len);
-        }
-    }
-
-    unsafe fn reserve(ptr: *mut u8, additional: usize) -> *mut u8 {
-        let ptr = ptr as *mut Vec<i32>;
-        unsafe {
-            let val = &mut *ptr;
-            val.reserve(additional);
-            val.as_mut_ptr() as *mut u8
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    use std::marker::PhantomData;
     use std::mem;
     #[derive(Debug)]
     struct Point {
@@ -332,18 +281,4 @@ mod tests {
         assert_eq!(my_data.location.y, 200);
         assert_eq!(my_data.is_active, 0);
     }
-
-    struct Veccer<T> {
-        _phantom: PhantomData<T>,
-    }
-
-    impl<T: Reflection> Veccer<T> {
-        fn create() -> *mut u8 {
-            let v: Vec<T> = Vec::new();
-            let b = Box::new(v);
-            Box::into_raw(b) as *mut u8
-        }
-    }
-
-    const FOO: fn() -> *mut u8 = Veccer::<Point>::create;
 }
