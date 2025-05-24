@@ -100,7 +100,7 @@ unsafe fn deserialize_field(walker: &mut JsonWalker, base: *mut u8, ty: &Type) {
             let mut cap = 4;
             let mut first = (v.vtable.new_at)(base, cap);
             let mut len = 0;
-            let stride = v.element.layout().align();
+            let stride = v.element.layout().size();
 
             let mut is_first = true;
             while !walker.chars.as_str().starts_with(']') {
@@ -269,7 +269,7 @@ mod test {
         };
         let s = reflect(&mut val).to_json_string();
         let val2 = from_json::<VecHolder>(&s);
+        dbg!(&val2);
         assert_eq!(val, val2);
-        dbg!(&val2)
     }
 }
