@@ -76,77 +76,51 @@ pub struct StructReflection<'a> {
 }
 
 pub fn reflect<T: Reflection>(val: &mut T) -> StructReflection<'_> {
-    reflect_inner(val as *mut T as *mut u8, T::MIRROR)
+    unsafe { reflect_struct(val as *mut T as *mut u8, T::MIRROR) }
 }
 
-pub fn reflect_inner(val: *mut u8, mirror: &Struct) -> StructReflection<'_> {
+pub unsafe fn reflect_struct(base: *mut u8, mirror: &Struct) -> StructReflection<'_> {
     let mut fields: Vec<FieldReflection> = Vec::new();
     for field in mirror.fields {
-        match &field.ty {
-            Type::I32 => {
-                let value = unsafe {
-                    let ptr = val.add(field.offset) as *mut i32;
-                    &mut *ptr
-                };
-                fields.push(FieldReflection {
-                    name: field.name,
-                    ty: ValueReflection::I32(value),
-                });
-            }
-            Type::U32 => {
-                let value = unsafe {
-                    let ptr = val.add(field.offset) as *mut u32;
-                    &mut *ptr
-                };
-                fields.push(FieldReflection {
-                    name: field.name,
-                    ty: ValueReflection::U32(value),
-                });
-            }
-            Type::F32 => {
-                let value = unsafe {
-                    let ptr = val.add(field.offset) as *mut f32;
-                    &mut *ptr
-                };
-                fields.push(FieldReflection {
-                    name: field.name,
-                    ty: ValueReflection::F32(value),
-                });
-            }
-            Type::String => {
-                let value = unsafe {
-                    let ptr = val.add(field.offset) as *mut String;
-                    &mut *ptr
-                };
-                fields.push(FieldReflection {
-                    name: field.name,
-                    ty: ValueReflection::String(value),
-                });
-            }
-            Type::Struct(s) => {
-                let ptr = unsafe { val.add(field.offset) };
-                fields.push(FieldReflection {
-                    name: field.name,
-                    ty: ValueReflection::Struct(Box::new(reflect_inner(ptr, s))),
-                });
-            }
-            Type::Vec(v) => {
-                let ptr = unsafe { val.add(field.offset) };
-                fields.push(FieldReflection {
-                    name: field.name,
-                    ty: ValueReflection::Vec(Box::new(VecReflection {
-                        element: v.element,
-                        ptr,
-                        vtable: &v.vtable,
-                        _phantom: std::marker::PhantomData,
-                    })),
-                });
-            }
+        unsafe {
+            let ptr = base.add(field.offset);
+            fields.push(FieldReflection {
+                name: field.name,
+                ty: reflect_value(ptr, &field.ty),
+            });
         }
     }
     StructReflection {
         name: mirror.name,
         fields,
+    }
+}
+
+pub fn reflect_value(ptr: *mut u8, ty: &Type) -> ValueReflection {
+    match ty {
+        Type::I32 => {
+            let value = unsafe { &mut *(ptr as *mut i32) };
+            ValueReflection::I32(value)
+        }
+        Type::U32 => {
+            let value = unsafe { &mut *(ptr as *mut u32) };
+            ValueReflection::U32(value)
+        }
+        Type::F32 => {
+            let value = unsafe { &mut *(ptr as *mut f32) };
+            ValueReflection::F32(value)
+        }
+        Type::String => {
+            let value = unsafe { &mut *(ptr as *mut String) };
+            ValueReflection::String(value)
+        }
+        Type::Struct(s) => ValueReflection::Struct(Box::new(unsafe { reflect_struct(ptr, s) })),
+        Type::Vec(v) => ValueReflection::Vec(Box::new(VecReflection {
+            element: v.element,
+            ptr,
+            vtable: &v.vtable,
+            _phantom: std::marker::PhantomData,
+        })),
     }
 }
 
