@@ -1,4 +1,4 @@
-mod json;
+pub mod json;
 
 pub enum Type {
     I32,

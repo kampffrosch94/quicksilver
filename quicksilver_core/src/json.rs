@@ -1,4 +1,7 @@
-use std::{alloc::Layout, mem::MaybeUninit};
+use std::mem::MaybeUninit;
+mod parser;
+
+use parser::JsonWalker;
 
 use crate::{FieldTypeReflection, Reflection, Struct, StructReflection};
 
@@ -35,7 +38,47 @@ pub fn from_json<T: Reflection>(s: &str) -> T {
     }
 }
 
-unsafe fn from_json_inner(s: &str, ptr: *mut u8, mirror: &Struct) {}
+unsafe fn from_json_inner(s: &str, base: *mut u8, mirror: &Struct) {
+    let mut walker = JsonWalker {
+        chars: s.chars(),
+        buffer: String::new(),
+    };
+    walker.consume_char('{');
+    for field in mirror.fields {
+        walker.consume_field(field.name);
+        match field.ty {
+            crate::Type::I32 => unsafe {
+                let ptr = base.add(field.offset) as *mut i32;
+                let val = walker.consume_i32();
+                ptr.write(val);
+            },
+            crate::Type::U32 => unsafe {
+                let ptr = base.add(field.offset) as *mut u32;
+                let val = walker.consume_u32();
+                ptr.write(val);
+            },
+            crate::Type::F32 => unsafe {
+                let ptr = base.add(field.offset) as *mut f32;
+                let val = walker.consume_f32();
+                ptr.write(val);
+            },
+            crate::Type::String => unsafe {
+                let ptr = base.add(field.offset) as *mut String;
+                let val = walker.consume_string();
+                ptr.write(val);
+            },
+            crate::Type::Struct(inner_mirror) => unsafe {
+                let inner_ptr = base.add(field.offset);
+                let inner_s = walker.chars.as_str();
+                from_json_inner(inner_s, inner_ptr, inner_mirror);
+            },
+            crate::Type::Vec(_) => {
+                todo!()
+            }
+        }
+        walker.consume_either('}', ',');
+    }
+}
 
 #[cfg(test)]
 mod test {

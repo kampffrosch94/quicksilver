@@ -1,0 +1,117 @@
+use std::str::Chars;
+
+/// Helper struct for Deserializing
+pub struct JsonWalker<'a> {
+    pub chars: Chars<'a>,
+    /// buffer used to simplify parsing of numbers and stuff
+    pub buffer: String,
+}
+
+impl JsonWalker<'_> {
+    pub fn consume_char(&mut self, arg: char) {
+        let Self { chars, .. } = self;
+        assert_eq!(Some(arg), chars.next());
+    }
+
+    pub fn consume_either(&mut self, a: char, b: char) {
+        let Self { chars, .. } = self;
+        match chars.next() {
+            Some(var) if var == a => {}
+            Some(var) if var == b => {}
+            other @ _ => {
+                assert!(false, "Expected {a} or {b} got {other:?}")
+            }
+        }
+    }
+
+    pub fn consume_i32(&mut self) -> i32 {
+        let Self { chars, buffer } = self;
+        buffer.clear();
+        let mut chars = chars.peekable();
+        let mut c = *chars.peek().expect("String ended while parsing.");
+        while match c {
+            '0'..'9' | '+' | '-' => true,
+            _ => false,
+        } {
+            buffer.push(c);
+            chars.next();
+            c = *chars.peek().expect("String ended while parsing.");
+        }
+        buffer
+            .parse::<i32>()
+            .expect("Couldn't parse as i32: '{buffer}'")
+    }
+
+    pub fn consume_u32(&mut self) -> u32 {
+        let Self { chars, buffer } = self;
+        buffer.clear();
+        let mut chars = chars.peekable();
+        let mut c = *chars.peek().expect("String ended while parsing.");
+        while match c {
+            '0'..'9' | '+' => true,
+            _ => false,
+        } {
+            buffer.push(c);
+            chars.next();
+            c = *chars.peek().expect("String ended while parsing.");
+        }
+        buffer
+            .parse::<u32>()
+            .expect("Couldn't parse as i32: '{buffer}'")
+    }
+
+    pub fn consume_f32(&mut self) -> f32 {
+        let Self { chars, buffer } = self;
+        buffer.clear();
+        let mut chars = chars.peekable();
+        let mut c = *chars.peek().expect("String ended while parsing.");
+        while match c {
+            '0'..'9' | '+' | '-' | '.' => true,
+            _ => false,
+        } {
+            buffer.push(c);
+            chars.next();
+            c = *chars.peek().expect("String ended while parsing.");
+        }
+        buffer
+            .parse::<f32>()
+            .expect("Couldn't parse as i32: '{buffer}'")
+    }
+
+    pub fn consume_field(&mut self, name: &str) {
+        self.consume_char('"');
+
+        let Self { chars, buffer } = self;
+        buffer.clear();
+        let mut chars = chars.peekable();
+        while chars.peek() != Some(&'"') {
+            buffer.push(chars.next().unwrap());
+        }
+        assert_eq!(name, buffer);
+
+        self.consume_char('"');
+        self.consume_char(':');
+    }
+
+    pub fn consume_string(&mut self) -> String {
+        self.consume_char('"');
+
+        let Self { chars, buffer } = self;
+        let mut chars = chars.peekable();
+        buffer.clear();
+        let mut escaped = false;
+        while chars.peek() != Some(&'"') || escaped {
+            if chars.peek() == Some(&'\\') && !escaped {
+                // ignore escape char backslash
+                let _ = chars.next().unwrap();
+                escaped = true;
+                continue;
+            }
+            escaped = false;
+            buffer.push(chars.next().unwrap());
+        }
+        self.consume_char('"');
+
+        self.buffer.clone()
+    }
+}
