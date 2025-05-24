@@ -3,7 +3,7 @@ mod parser;
 
 use parser::JsonWalker;
 
-use crate::{FieldTypeReflection, Reflection, Struct, StructReflection, Type};
+use crate::{Reflection, Struct, StructReflection, Type, ValueReflection};
 
 impl<'a> StructReflection<'a> {
     pub fn to_json_string(&self) -> String {
@@ -11,14 +11,14 @@ impl<'a> StructReflection<'a> {
         for field in &self.fields {
             let field_name = format!("\"{}\"", field.name);
             let field_value = match &field.ty {
-                FieldTypeReflection::I32(val) => format!("{}", **val),
-                FieldTypeReflection::U32(val) => format!("{}", **val),
-                FieldTypeReflection::F32(val) => format!("{}", **val),
-                FieldTypeReflection::String(val) => {
+                ValueReflection::I32(val) => format!("{}", **val),
+                ValueReflection::U32(val) => format!("{}", **val),
+                ValueReflection::F32(val) => format!("{}", **val),
+                ValueReflection::String(val) => {
                     let escaped_val = val.replace(r"\", r"\\").replace(r#"""#, r#"\""#);
                     format!("\"{}\"", escaped_val)
                 }
-                FieldTypeReflection::Struct(s_ref) => s_ref.to_json_string(),
+                ValueReflection::Struct(s_ref) => s_ref.to_json_string(),
             };
             json_parts.push(format!("{}:{}", field_name, field_value));
         }
@@ -110,7 +110,7 @@ unsafe fn deserialize_field(walker: &mut JsonWalker, base: *mut u8, ty: &Type) {
 
 #[cfg(test)]
 mod test {
-    use std::mem;
+    use std::{any::type_name, mem};
 
     use crate::{json::from_json, vec::VecVtableCreator, *};
     #[derive(Debug, PartialEq)]
@@ -121,6 +121,7 @@ mod test {
 
     impl Reflection for Point {
         const MIRROR: &'static Struct = &Struct {
+            name: "Point",
             size: size_of::<Self>(),
             align: size_of::<Self>(),
             fields: &[
@@ -148,6 +149,7 @@ mod test {
 
     impl Reflection for MyData {
         const MIRROR: &'static Struct = &Struct {
+            name: "MyData",
             size: size_of::<Self>(),
             align: size_of::<Self>(),
             fields: &[
@@ -210,6 +212,7 @@ mod test {
 
     impl Reflection for VecHolder {
         const MIRROR: &'static Struct = &Struct {
+            name: "VecHolder",
             size: size_of::<Self>(),
             align: size_of::<Self>(),
             fields: &[
