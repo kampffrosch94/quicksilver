@@ -7,12 +7,23 @@ pub struct JsonWalker<'a> {
     pub buffer: String,
 }
 
+#[track_caller]
+pub fn peek(chars: &Chars) -> char {
+    chars
+        .as_str()
+        .chars()
+        .next()
+        .expect("String ended while parsing.")
+}
+
 impl JsonWalker<'_> {
+    #[track_caller]
     pub fn consume_char(&mut self, arg: char) {
         let Self { chars, .. } = self;
         assert_eq!(Some(arg), chars.next());
     }
 
+    #[track_caller]
     pub fn consume_either(&mut self, a: char, b: char) {
         let Self { chars, .. } = self;
         match chars.next() {
@@ -24,18 +35,26 @@ impl JsonWalker<'_> {
         }
     }
 
+    #[track_caller]
+    pub fn consume_maybe(&mut self, c: char) {
+        let Self { chars, .. } = self;
+        if peek(chars) == c {
+            let _ = chars.next();
+        }
+    }
+
     pub fn consume_i32(&mut self) -> i32 {
         let Self { chars, buffer } = self;
         buffer.clear();
-        let mut chars = chars.peekable();
-        let mut c = *chars.peek().expect("String ended while parsing.");
+
+        let mut c = peek(chars);
         while match c {
-            '0'..'9' | '+' | '-' => true,
+            '0'..='9' | '+' | '-' => true,
             _ => false,
         } {
             buffer.push(c);
             chars.next();
-            c = *chars.peek().expect("String ended while parsing.");
+            c = peek(chars);
         }
         buffer
             .parse::<i32>()
@@ -45,15 +64,14 @@ impl JsonWalker<'_> {
     pub fn consume_u32(&mut self) -> u32 {
         let Self { chars, buffer } = self;
         buffer.clear();
-        let mut chars = chars.peekable();
-        let mut c = *chars.peek().expect("String ended while parsing.");
+        let mut c = peek(chars);
         while match c {
-            '0'..'9' | '+' => true,
+            '0'..='9' | '+' => true,
             _ => false,
         } {
             buffer.push(c);
             chars.next();
-            c = *chars.peek().expect("String ended while parsing.");
+            c = peek(chars);
         }
         buffer
             .parse::<u32>()
@@ -63,28 +81,27 @@ impl JsonWalker<'_> {
     pub fn consume_f32(&mut self) -> f32 {
         let Self { chars, buffer } = self;
         buffer.clear();
-        let mut chars = chars.peekable();
-        let mut c = *chars.peek().expect("String ended while parsing.");
+        let mut c = peek(chars);
         while match c {
             '0'..'9' | '+' | '-' | '.' => true,
             _ => false,
         } {
             buffer.push(c);
             chars.next();
-            c = *chars.peek().expect("String ended while parsing.");
+            c = peek(chars);
         }
         buffer
             .parse::<f32>()
             .expect("Couldn't parse as i32: '{buffer}'")
     }
 
+    #[track_caller]
     pub fn consume_field(&mut self, name: &str) {
         self.consume_char('"');
 
         let Self { chars, buffer } = self;
         buffer.clear();
-        let mut chars = chars.peekable();
-        while chars.peek() != Some(&'"') {
+        while peek(chars) != '"' {
             buffer.push(chars.next().unwrap());
         }
         assert_eq!(name, buffer);
@@ -97,11 +114,10 @@ impl JsonWalker<'_> {
         self.consume_char('"');
 
         let Self { chars, buffer } = self;
-        let mut chars = chars.peekable();
         buffer.clear();
         let mut escaped = false;
-        while chars.peek() != Some(&'"') || escaped {
-            if chars.peek() == Some(&'\\') && !escaped {
+        while peek(chars) != '"' || escaped {
+            if peek(chars) == '\\' && !escaped {
                 // ignore escape char backslash
                 let _ = chars.next().unwrap();
                 escaped = true;
@@ -110,8 +126,8 @@ impl JsonWalker<'_> {
             escaped = false;
             buffer.push(chars.next().unwrap());
         }
-        self.consume_char('"');
 
+        self.consume_char('"'); // peek already consumed this
         self.buffer.clone()
     }
 }

@@ -1,7 +1,9 @@
+use std::fmt::Debug;
 use std::marker::PhantomData;
 
 use crate::Reflection;
 
+#[derive(Debug)]
 pub struct VecVtable {
     /// creates the Vec of current Type at the pointer coordinate
     /// returns pointer to the first element

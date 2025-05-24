@@ -3,7 +3,7 @@ mod parser;
 
 use parser::JsonWalker;
 
-use crate::{FieldTypeReflection, Reflection, Struct, StructReflection};
+use crate::{FieldTypeReflection, Reflection, Struct, StructReflection, Type};
 
 impl<'a> StructReflection<'a> {
     pub fn to_json_string(&self) -> String {
@@ -28,55 +28,83 @@ impl<'a> StructReflection<'a> {
 
 pub fn from_json<T: Reflection>(s: &str) -> T {
     let mirror = T::MIRROR;
-    // let layout = Layout::from_size_align(mirror.size, mirror.align).expect("Can't create layout.");
-
     let mut result: MaybeUninit<T> = MaybeUninit::uninit();
     let ptr = result.as_mut_ptr();
-    unsafe {
-        from_json_inner(s, ptr as *mut u8, mirror);
-        result.assume_init()
-    }
-}
-
-unsafe fn from_json_inner(s: &str, base: *mut u8, mirror: &Struct) {
     let mut walker = JsonWalker {
         chars: s.chars(),
         buffer: String::new(),
     };
+    unsafe {
+        from_json_inner(&mut walker, ptr as *mut u8, mirror);
+        result.assume_init()
+    }
+}
+
+unsafe fn from_json_inner(walker: &mut JsonWalker, base: *mut u8, mirror: &Struct) {
     walker.consume_char('{');
     for field in mirror.fields {
+        dbg!(field);
+        dbg!(walker.chars.as_str());
         walker.consume_field(field.name);
-        match field.ty {
-            crate::Type::I32 => unsafe {
-                let ptr = base.add(field.offset) as *mut i32;
-                let val = walker.consume_i32();
-                ptr.write(val);
-            },
-            crate::Type::U32 => unsafe {
-                let ptr = base.add(field.offset) as *mut u32;
-                let val = walker.consume_u32();
-                ptr.write(val);
-            },
-            crate::Type::F32 => unsafe {
-                let ptr = base.add(field.offset) as *mut f32;
-                let val = walker.consume_f32();
-                ptr.write(val);
-            },
-            crate::Type::String => unsafe {
-                let ptr = base.add(field.offset) as *mut String;
-                let val = walker.consume_string();
-                ptr.write(val);
-            },
-            crate::Type::Struct(inner_mirror) => unsafe {
-                let inner_ptr = base.add(field.offset);
-                let inner_s = walker.chars.as_str();
-                from_json_inner(inner_s, inner_ptr, inner_mirror);
-            },
-            crate::Type::Vec(_) => {
-                todo!()
+        unsafe { deserialize_field(walker, base.add(field.offset), &field.ty) };
+        walker.consume_maybe(',');
+    }
+    walker.consume_char('}');
+}
+
+unsafe fn deserialize_field(walker: &mut JsonWalker, base: *mut u8, ty: &Type) {
+    match ty {
+        Type::I32 => unsafe {
+            let ptr = base as *mut i32;
+            let val = walker.consume_i32();
+            ptr.write(val);
+        },
+        Type::U32 => unsafe {
+            let ptr = base as *mut u32;
+            let val = walker.consume_u32();
+            ptr.write(val);
+        },
+        Type::F32 => unsafe {
+            let ptr = base as *mut f32;
+            let val = walker.consume_f32();
+            ptr.write(val);
+        },
+        Type::String => unsafe {
+            let ptr = base as *mut String;
+            let val = walker.consume_string();
+            ptr.write(val);
+        },
+        Type::Struct(inner_mirror) => unsafe {
+            from_json_inner(walker, base, inner_mirror);
+        },
+        Type::Vec(v) => unsafe {
+            walker.consume_char('[');
+            let mut cap = 4;
+            let mut first = (v.vtable.new_at)(base, cap);
+            let mut len = 0;
+            let stride = v.element.layout().align();
+
+            let mut is_first = true;
+            while !walker.chars.as_str().starts_with(']') {
+                if !is_first {
+                    walker.consume_char(',');
+                }
+                is_first = false;
+
+                debug_assert!(len <= cap); // sanity check
+                if len == cap {
+                    let extra = 8;
+                    first = (v.vtable.reserve)(base, extra);
+                    cap += extra;
+                }
+
+                let ptr = first.add(stride * len);
+                deserialize_field(walker, ptr, v.element);
+                len += 1;
             }
-        }
-        walker.consume_either('}', ',');
+            (v.vtable.set_len)(base, len);
+            walker.consume_char(']');
+        },
     }
 }
 
@@ -84,8 +112,8 @@ unsafe fn from_json_inner(s: &str, base: *mut u8, mirror: &Struct) {
 mod test {
     use std::mem;
 
-    use crate::*;
-    #[derive(Debug)]
+    use crate::{json::from_json, vec::VecVtableCreator, *};
+    #[derive(Debug, PartialEq)]
     struct Point {
         x: i32,
         y: i32,
@@ -109,7 +137,7 @@ mod test {
             ],
         };
     }
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     struct MyData {
         id: u32,
         name: String,
@@ -168,5 +196,54 @@ mod test {
         let expected_json = r#"{"id":789,"name":"Another \"Test\" String with \\backslashes\\","value":123.45,"location":{"x":-5,"y":30},"is_active":1}"#;
 
         assert_eq!(json_string, expected_json);
+
+        let deserialized = from_json::<MyData>(&json_string);
+        assert_eq!(my_data, deserialized);
+    }
+
+    #[derive(Debug, PartialEq)]
+    struct VecHolder {
+        name: String,
+        age: i32,
+        values: Vec<i32>,
+    }
+
+    impl Reflection for VecHolder {
+        const MIRROR: &'static Struct = &Struct {
+            size: size_of::<Self>(),
+            align: size_of::<Self>(),
+            fields: &[
+                Field {
+                    name: "name",
+                    ty: Type::String,
+                    offset: mem::offset_of!(Self, name),
+                },
+                Field {
+                    name: "age",
+                    ty: Type::I32,
+                    offset: mem::offset_of!(Self, age),
+                },
+                Field {
+                    name: "values",
+                    ty: Type::Vec(VecType {
+                        element: &Type::I32,
+                        vtable: VecVtableCreator::<i32>::VTABLE,
+                    }),
+                    offset: mem::offset_of!(Self, values),
+                },
+            ],
+        };
+    }
+
+    #[test]
+    fn vec_roundtrip() {
+        let mut val = VecHolder {
+            name: "Kampffrosch".to_string(),
+            age: 30,
+            values: vec![1, 2, 3, 4, 5],
+        };
+        let s = reflect(&mut val).to_json_string();
+        let val2 = from_json::<VecHolder>(&s);
+        assert_eq!(val, val2);
     }
 }

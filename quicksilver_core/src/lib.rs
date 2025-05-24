@@ -1,8 +1,11 @@
+use std::alloc::Layout;
+
 use vec::VecVtable;
 
 pub mod json;
 pub mod vec;
 
+#[derive(Debug)]
 pub enum Type {
     I32,
     U32,
@@ -12,17 +15,33 @@ pub enum Type {
     Struct(&'static Struct),
 }
 
+impl Type {
+    pub const fn layout(&self) -> Layout {
+        match self {
+            Type::I32 => Layout::new::<i32>(),
+            Type::U32 => Layout::new::<u32>(),
+            Type::F32 => Layout::new::<f32>(),
+            Type::String => Layout::new::<String>(),
+            Type::Vec(_) => Layout::new::<Vec<i32>>(),
+            Type::Struct(s) => unsafe { Layout::from_size_align_unchecked(s.size, s.align) },
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct VecType {
     pub element: &'static Type,
     pub vtable: VecVtable,
 }
 
+#[derive(Debug)]
 pub struct Field {
     name: &'static str,
     ty: Type,
     offset: usize,
 }
 
+#[derive(Debug)]
 pub struct Struct {
     pub size: usize,
     pub align: usize,
@@ -111,7 +130,9 @@ pub fn reflect_inner(val: *mut u8, mirror: &Struct) -> StructReflection<'_> {
                     ty: FieldTypeReflection::Struct(Box::new(reflect_inner(value, s))),
                 });
             }
-            Type::Vec(_) => todo!(),
+            Type::Vec(v) => {
+                todo!()
+            },
         }
     }
     StructReflection { fields }
