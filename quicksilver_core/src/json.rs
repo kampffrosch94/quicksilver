@@ -19,6 +19,9 @@ impl<'a> StructReflection<'a> {
                     format!("\"{}\"", escaped_val)
                 }
                 ValueReflection::Struct(s_ref) => s_ref.to_json_string(),
+                ValueReflection::Vec(vec_reflection) => {
+                    todo!()
+                }
             };
             json_parts.push(format!("{}:{}", field_name, field_value));
         }

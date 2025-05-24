@@ -1,6 +1,6 @@
 use std::alloc::Layout;
 
-use vec::VecVtable;
+use vec::{VecReflection, VecVtable};
 
 pub mod json;
 pub mod vec;
@@ -60,6 +60,7 @@ pub enum ValueReflection<'a> {
     F32(&'a mut f32),
     String(&'a mut String),
     Struct(Box<StructReflection<'a>>),
+    Vec(Box<VecReflection<'a>>),
 }
 
 #[repr(C)]
@@ -123,17 +124,23 @@ pub fn reflect_inner(val: *mut u8, mirror: &Struct) -> StructReflection<'_> {
                 });
             }
             Type::Struct(s) => {
-                let value = unsafe {
-                    let ptr = val.add(field.offset) as *mut u8;
-                    &mut *ptr
-                };
+                let ptr = unsafe { val.add(field.offset) };
                 fields.push(FieldReflection {
                     name: field.name,
-                    ty: ValueReflection::Struct(Box::new(reflect_inner(value, s))),
+                    ty: ValueReflection::Struct(Box::new(reflect_inner(ptr, s))),
                 });
             }
             Type::Vec(v) => {
-                todo!()
+                let ptr = unsafe { val.add(field.offset) };
+                fields.push(FieldReflection {
+                    name: field.name,
+                    ty: ValueReflection::Vec(Box::new(VecReflection {
+                        element: v.element,
+                        ptr,
+                        vtable: &v.vtable,
+                        _phantom: std::marker::PhantomData,
+                    })),
+                });
             }
         }
     }
