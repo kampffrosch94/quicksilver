@@ -1,4 +1,6 @@
-use crate::{FieldTypeReflection, StructReflection};
+use std::{alloc::Layout, mem::MaybeUninit};
+
+use crate::{FieldTypeReflection, Reflection, Struct, StructReflection};
 
 impl<'a> StructReflection<'a> {
     pub fn to_json_string(&self) -> String {
@@ -21,6 +23,20 @@ impl<'a> StructReflection<'a> {
     }
 }
 
+pub fn from_json<T: Reflection>(s: &str) -> T {
+    let mirror = T::MIRROR;
+    // let layout = Layout::from_size_align(mirror.size, mirror.align).expect("Can't create layout.");
+
+    let mut result: MaybeUninit<T> = MaybeUninit::uninit();
+    let ptr = result.as_mut_ptr();
+    unsafe {
+        from_json_inner(s, ptr as *mut u8, mirror);
+        result.assume_init()
+    }
+}
+
+unsafe fn from_json_inner(s: &str, ptr: *mut u8, mirror: &Struct) {}
+
 #[cfg(test)]
 mod test {
     use std::mem;
@@ -34,6 +50,8 @@ mod test {
 
     impl Reflection for Point {
         const MIRROR: &'static Struct = &Struct {
+            size: size_of::<Self>(),
+            align: size_of::<Self>(),
             fields: &[
                 Field {
                     name: "x",
@@ -59,6 +77,8 @@ mod test {
 
     impl Reflection for MyData {
         const MIRROR: &'static Struct = &Struct {
+            size: size_of::<Self>(),
+            align: size_of::<Self>(),
             fields: &[
                 Field {
                     name: "id",

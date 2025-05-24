@@ -16,7 +16,9 @@ pub struct Field {
 }
 
 pub struct Struct {
-    fields: &'static [Field],
+    pub size: usize,
+    pub align: usize,
+    pub fields: &'static [Field],
 }
 
 pub trait Reflection {
@@ -101,9 +103,7 @@ pub fn reflect_inner(val: *mut u8, mirror: &Struct) -> StructReflection<'_> {
                     ty: FieldTypeReflection::Struct(Box::new(reflect_inner(value, s))),
                 });
             }
-            _ => {
-                todo!();
-            }
+            Type::Vec(_) => todo!(),
         }
     }
     StructReflection { fields }
@@ -123,6 +123,8 @@ mod tests {
 
     impl Reflection for Point {
         const MIRROR: &'static Struct = &Struct {
+            size: size_of::<Self>(),
+            align: size_of::<Self>(),
             fields: &[
                 Field {
                     name: "x",
@@ -149,6 +151,8 @@ mod tests {
 
     impl Reflection for MyData {
         const MIRROR: &'static Struct = &Struct {
+            size: size_of::<Self>(),
+            align: size_of::<Self>(),
             fields: &[
                 Field {
                     name: "id",
