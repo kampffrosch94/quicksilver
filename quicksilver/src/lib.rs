@@ -11,6 +11,7 @@ pub enum Type {
     I32,
     U32,
     F32,
+    Bool,
     String,
     Vec(VecType),
     Struct(&'static Struct),
@@ -22,6 +23,7 @@ impl Type {
             Type::I32 => Layout::new::<i32>(),
             Type::U32 => Layout::new::<u32>(),
             Type::F32 => Layout::new::<f32>(),
+            Type::Bool => Layout::new::<bool>(),
             Type::String => Layout::new::<String>(),
             Type::Vec(_) => Layout::new::<Vec<i32>>(),
             Type::Struct(s) => unsafe { Layout::from_size_align_unchecked(s.size, s.align) },
@@ -59,6 +61,7 @@ pub enum ValueReflection<'a> {
     I32(&'a mut i32),
     U32(&'a mut u32),
     F32(&'a mut f32),
+    Bool(&'a mut bool),
     String(&'a mut String),
     Struct(Box<StructReflection<'a>>),
     Vec(Box<VecReflection<'a>>),
@@ -110,6 +113,10 @@ pub unsafe fn reflect_value(ptr: *mut u8, ty: &Type) -> ValueReflection {
         Type::F32 => {
             let value = unsafe { &mut *(ptr as *mut f32) };
             ValueReflection::F32(value)
+        }
+        Type::Bool => {
+            let value = unsafe { &mut *(ptr as *mut bool) };
+            ValueReflection::Bool(value)
         }
         Type::String => {
             let value = unsafe { &mut *(ptr as *mut String) };

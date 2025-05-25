@@ -22,6 +22,7 @@ pub fn value_to_json(vr: &mut ValueReflection) -> String {
         ValueReflection::I32(val) => format!("{}", **val),
         ValueReflection::U32(val) => format!("{}", **val),
         ValueReflection::F32(val) => format!("{}", **val),
+        ValueReflection::Bool(val) => format!("{}", **val),
         ValueReflection::String(val) => {
             let escaped_val = val.replace(r"\", r"\\").replace(r#"""#, r#"\""#);
             format!("\"{}\"", escaped_val)
@@ -85,6 +86,11 @@ unsafe fn deserialize_field(walker: &mut JsonWalker, base: *mut u8, ty: &Type) {
         Type::F32 => unsafe {
             let ptr = base as *mut f32;
             let val = walker.consume_f32();
+            ptr.write(val);
+        },
+        Type::Bool => unsafe {
+            let ptr = base as *mut bool;
+            let val = walker.consume_bool();
             ptr.write(val);
         },
         Type::String => unsafe {

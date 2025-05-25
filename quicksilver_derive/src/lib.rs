@@ -133,6 +133,7 @@ fn parse_type(buffer: &[TokenTree], ty: &str) -> Result<String, MacroError> {
             "i32" => "Type::I32".to_string(),
             "u32" => "Type::U32".to_string(),
             "f32" => "Type::F32".to_string(),
+            "bool" => "Type::Bool".to_string(),
             "String" => "Type::String".to_string(),
             s => format!("Type::Struct({s}::MIRROR)"),
         }

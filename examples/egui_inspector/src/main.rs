@@ -25,6 +25,7 @@ fn main() -> eframe::Result {
 #[derive(Debug, Quicksilver)]
 struct Person {
     name: String,
+    alive: bool,
     age: u32,
     houses: Vec<House>,
     pos: Pos,
@@ -47,6 +48,7 @@ impl Default for Person {
         Self {
             name: "Arthur".to_owned(),
             age: 42,
+            alive: true,
             houses: vec![
                 House {
                     name: "Home".to_string(),
@@ -117,6 +119,9 @@ fn draw_value(ui: &mut egui::Ui, value: &mut ValueReflection) {
         }
         ValueReflection::F32(it) => {
             ui.add(egui::DragValue::new(*it));
+        }
+        ValueReflection::Bool(it) => {
+            ui.checkbox(it, "");
         }
         ValueReflection::String(s) => {
             ui.text_edit_singleline(*s);

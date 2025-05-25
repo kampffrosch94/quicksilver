@@ -11,6 +11,7 @@ struct Point {
 struct VecHolder {
     name: String,
     age: i32,
+    alive: bool,
     values: Vec<Point>,
 }
 
@@ -19,6 +20,7 @@ fn vec_roundtrip() {
     let mut val = VecHolder {
         name: "Kampffrosch".to_string(),
         age: 30,
+        alive: true,
         values: vec![
             Point { x: 1, y: 2 },
             Point { x: 2, y: 4 },

@@ -118,4 +118,15 @@ impl JsonWalker<'_> {
         self.consume_char('"'); // peek already consumed this
         self.buffer.clone()
     }
+
+    pub fn consume_bool(&mut self) -> bool {
+        let Self { chars, buffer } = self;
+        buffer.clear();
+        while peek(chars) != '}' && peek(chars) != ',' {
+            buffer.push(chars.next().unwrap());
+        }
+        buffer
+            .parse::<bool>()
+            .expect("Couldn't parse as bool: '{buffer}'")
+    }
 }
