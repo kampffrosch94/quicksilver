@@ -110,30 +110,39 @@ fn parse_fields(input: TokenStream) -> Result<Vec<Field>, MacroError> {
 fn parse_field(buffer: &[TokenTree]) -> Result<Field, MacroError> {
     dbg!(buffer);
     let mut iter = buffer.iter();
-    match (iter.next(), iter.next(), iter.next(), iter.next()) {
-        (
-            Some(TT::Ident(name)),
-            Some(tt_colon @ TT::Punct(colon)),
-            Some(tt_ty @ TT::Ident(ty)),
-            None,
-        ) => {
+    match (iter.next(), iter.next(), iter.next()) {
+        (Some(TT::Ident(name)), Some(tt_colon @ TT::Punct(colon)), tt_ty @ Some(TT::Ident(ty))) => {
             if colon.as_char() != ':' {
                 error_single!(tt_colon, "Expected ':'")
             }
             let name = name.to_string();
-            let ty = match ty.to_string().as_str() {
-                "i32" => "I32".to_string(),
-                "u32" => "U32".to_string(),
-                "f32" => "F32".to_string(),
-                "String" => "String".to_string(),
-                s => format!("Struct({s}::MIRROR)"),
-                //_ => error_single!(tt_ty, "Unsupported type"),
-            };
+            let buffer = &buffer[2..];
+            let ty = parse_type(&buffer, &ty.to_string())?;
             Ok(Field { name, ty })
         }
         _ => error!(
             &[buffer[0].clone(), buffer.last().unwrap().clone()],
-            "Can't parse."
+            "Quicksilver can't parse this."
         ),
     }
+}
+
+fn parse_type(buffer: &[TokenTree], ty: &str) -> Result<String, MacroError> {
+    Ok(if buffer.len() == 1 {
+        match ty {
+            "i32" => "I32".to_string(),
+            "u32" => "U32".to_string(),
+            "f32" => "F32".to_string(),
+            "String" => "String".to_string(),
+            s => format!("Struct({s}::MIRROR)"),
+        }
+    } else {
+        match ty {
+            //"Vec" => {}
+            _ => error!(
+                &[buffer[0].clone(), buffer.last().unwrap().clone()],
+                "Quicksilver does not support this type."
+            ),
+        }
+    })
 }
