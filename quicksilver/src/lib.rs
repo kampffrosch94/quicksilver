@@ -1,6 +1,7 @@
 use std::alloc::Layout;
 
 use vec::{VecReflection, VecVtable};
+pub use quicksilver_derive::Quicksilver;
 
 pub mod json;
 pub mod vec;
@@ -289,5 +290,15 @@ mod tests {
         assert_eq!(my_data.location.x, 100);
         assert_eq!(my_data.location.y, 200);
         assert_eq!(my_data.is_active, 0);
+    }
+
+    #[derive(Quicksilver)]
+    struct Simple {
+        x: i32,
+    }
+
+    #[test]
+    fn test_derive() {
+        assert_eq!(42, answer());
     }
 }

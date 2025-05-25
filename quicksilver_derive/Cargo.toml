@@ -1,10 +1,12 @@
 [package]
-name = "quicksilver"
+name = "quicksilver_derive"
 version = "0.1.0"
 license.workspace = true
 edition.workspace = true
 authors.workspace = true
 repository.workspace = true
 
+[lib]
+proc-macro = true
+
 [dependencies]
-quicksilver_derive = { version = "0.1.0", path = "../quicksilver_derive" }
