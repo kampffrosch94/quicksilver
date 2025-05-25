@@ -1,0 +1,12 @@
+[package]
+name = "egui_inspector"
+version = "0.1.0"
+license.workspace = true
+edition.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+eframe = "0.31.1"
+quicksilver = { version = "0.1.0", path = "../../quicksilver" }
+winit = "0.30.11"

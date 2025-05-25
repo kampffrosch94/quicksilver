@@ -1,7 +1,9 @@
 [workspace]
 resolver = "3"
-members = [ 
-    "quicksilver", "quicksilver_derive", 
+members = [
+        "examples/*", 
+        "quicksilver",
+        "quicksilver_derive", 
 ]
 
 [workspace.package]

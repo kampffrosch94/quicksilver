@@ -76,7 +76,7 @@ fn generate_field(result: &mut String, field: &Field) {
 Field {{
     name: "{name}",
     ty: {ty},
-    offset: mem::offset_of!(Self, {name}),
+    offset: ::std::mem::offset_of!(Self, {name}),
 }},"#
     )
     .unwrap()
@@ -111,7 +111,7 @@ fn parse_field(buffer: &[TokenTree]) -> Result<Field, MacroError> {
     dbg!(buffer);
     let mut iter = buffer.iter();
     match (iter.next(), iter.next(), iter.next()) {
-        (Some(TT::Ident(name)), Some(tt_colon @ TT::Punct(colon)), tt_ty @ Some(TT::Ident(ty))) => {
+        (Some(TT::Ident(name)), Some(tt_colon @ TT::Punct(colon)), Some(TT::Ident(ty))) => {
             if colon.as_char() != ':' {
                 error_single!(tt_colon, "Expected ':'")
             }

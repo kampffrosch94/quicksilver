@@ -37,9 +37,9 @@ pub struct VecType {
 
 #[derive(Debug)]
 pub struct Field {
-    name: &'static str,
-    ty: Type,
-    offset: usize,
+    pub name: &'static str,
+    pub ty: Type,
+    pub offset: usize,
 }
 
 #[derive(Debug)]
