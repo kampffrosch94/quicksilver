@@ -1,7 +1,7 @@
 use std::alloc::Layout;
 
-use vec::{VecReflection, VecVtable};
 pub use quicksilver_derive::Quicksilver;
+use vec::{VecReflection, VecVtable};
 
 pub mod json;
 pub mod vec;
@@ -293,12 +293,15 @@ mod tests {
     }
 
     #[derive(Quicksilver)]
-    struct Simple {
+    struct Point3d {
+        label: String,
         x: i32,
+        y: u32,
+        z: f32,
     }
 
     #[test]
     fn test_derive() {
-        assert_eq!(42, answer());
+        let mirror = Point3d::MIRROR;
     }
 }

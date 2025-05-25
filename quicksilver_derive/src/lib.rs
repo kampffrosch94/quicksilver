@@ -40,28 +40,46 @@ fn inner(item: TokenStream) -> Result<TokenStream, MacroError> {
 
 fn generate_impl(name: String, fields: Vec<Field>) -> Result<TokenStream, MacroError> {
     let result = &mut String::new();
-    write!(result, r#"
+    write!(
+        result,
+        r#"
 impl Reflection for {name} {{
     const MIRROR: &'static Struct = &Struct {{
         name: "{name}",
         size: size_of::<Self>(),
         align: align_of::<Self>(),
-        fields: &[
-            Field {{
-                name: "x",
-                ty: Type::I32,
-                offset: mem::offset_of!(Self, x),
-            }},
-            Field {{
-                name: "y",
-                ty: Type::I32,
-                offset: mem::offset_of!(Self, y),
-            }},
+        fields: &["#
+    )
+    .unwrap();
+    for field in &fields {
+        generate_field(result, field);
+    }
+
+    write!(
+        result,
+        r#"
         ],
     }};
 }}
-"#).unwrap();
-    Ok("fn answer() -> u32 { 42 }".parse().unwrap())
+"#
+    )
+    .unwrap();
+    Ok(result.parse().unwrap())
+}
+
+fn generate_field(result: &mut String, field: &Field) {
+    let name = &field.name;
+    let ty = &field.ty;
+    write!(
+        result,
+        r#"
+Field {{
+    name: "{name}",
+    ty: Type::{ty},
+    offset: mem::offset_of!(Self, {name}),
+}},"#
+    )
+    .unwrap()
 }
 
 struct Field {
@@ -93,12 +111,24 @@ fn parse_field(buffer: &[TokenTree]) -> Result<Field, MacroError> {
     dbg!(buffer);
     let mut iter = buffer.iter();
     match (iter.next(), iter.next(), iter.next(), iter.next()) {
-        (Some(TT::Ident(name)), Some(tt_colon @ TT::Punct(colon)), Some(TT::Ident(ty)), None) => {
+        (
+            Some(TT::Ident(name)),
+            Some(tt_colon @ TT::Punct(colon)),
+            Some(tt_ty @ TT::Ident(ty)),
+            None,
+        ) => {
             if colon.as_char() != ':' {
                 error_single!(tt_colon, "Expected ':'")
             }
             let name = name.to_string();
-            let ty = ty.to_string();
+            let ty = match ty.to_string().as_str() {
+                "i32" => "I32".to_string(),
+                "u32" => "U32".to_string(),
+                "f32" => "F32".to_string(),
+                "String" => "String".to_string(),
+                s => format!("Struct({s}::MIRROR)"),
+                //_ => error_single!(tt_ty, "Unsupported type"),
+            };
             Ok(Field { name, ty })
         }
         _ => error!(
