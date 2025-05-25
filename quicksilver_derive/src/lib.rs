@@ -75,7 +75,7 @@ fn generate_field(result: &mut String, field: &Field) {
         r#"
 Field {{
     name: "{name}",
-    ty: Type::{ty},
+    ty: {ty},
     offset: mem::offset_of!(Self, {name}),
 }},"#
     )
@@ -130,11 +130,11 @@ fn parse_field(buffer: &[TokenTree]) -> Result<Field, MacroError> {
 fn parse_type(buffer: &[TokenTree], ty: &str) -> Result<String, MacroError> {
     Ok(if buffer.len() == 1 {
         match ty {
-            "i32" => "I32".to_string(),
-            "u32" => "U32".to_string(),
-            "f32" => "F32".to_string(),
-            "String" => "String".to_string(),
-            s => format!("Struct({s}::MIRROR)"),
+            "i32" => "Type::I32".to_string(),
+            "u32" => "Type::U32".to_string(),
+            "f32" => "Type::F32".to_string(),
+            "String" => "Type::String".to_string(),
+            s => format!("Type::Struct({s}::MIRROR)"),
         }
     } else {
         match ty {
