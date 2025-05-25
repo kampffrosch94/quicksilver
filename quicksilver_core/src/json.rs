@@ -146,12 +146,12 @@ mod test {
                 Field {
                     name: "x",
                     ty: Type::I32,
-                    offset: mem::offset_of!(Point, x),
+                    offset: mem::offset_of!(Self, x),
                 },
                 Field {
                     name: "y",
                     ty: Type::I32,
-                    offset: mem::offset_of!(Point, y),
+                    offset: mem::offset_of!(Self, y),
                 },
             ],
         };
