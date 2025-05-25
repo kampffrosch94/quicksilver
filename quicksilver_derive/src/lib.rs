@@ -149,7 +149,7 @@ fn parse_type(buffer: &[TokenTree], ty: &str) -> Result<String, MacroError> {
                     r#"
 Type::Vec(VecType {{
     element: &{inner},
-    vtable: VecVtableCreator::<{inner_name}>::VTABLE,
+    vtable: ::quicksilver::vec::VecVtableCreator::<{inner_name}>::VTABLE,
 }})"#
                 )
             }
