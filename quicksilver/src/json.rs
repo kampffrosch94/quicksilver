@@ -167,39 +167,11 @@ mod test {
         assert_eq!(my_data, deserialized);
     }
 
-    #[derive(Debug, PartialEq)]
+    #[derive(Debug, PartialEq, Quicksilver)]
     struct VecHolder {
         name: String,
         age: i32,
         values: Vec<Point>,
-    }
-
-    impl Reflection for VecHolder {
-        const MIRROR: &'static Struct = &Struct {
-            name: "VecHolder",
-            size: size_of::<Self>(),
-            align: align_of::<Self>(),
-            fields: &[
-                Field {
-                    name: "name",
-                    ty: Type::String,
-                    offset: mem::offset_of!(Self, name),
-                },
-                Field {
-                    name: "age",
-                    ty: Type::I32,
-                    offset: mem::offset_of!(Self, age),
-                },
-                Field {
-                    name: "values",
-                    ty: Type::Vec(VecType {
-                        element: &Type::Struct(Point::MIRROR),
-                        vtable: VecVtableCreator::<Point>::VTABLE,
-                    }),
-                    offset: mem::offset_of!(Self, values),
-                },
-            ],
-        };
     }
 
     #[test]

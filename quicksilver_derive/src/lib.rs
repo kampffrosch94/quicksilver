@@ -138,7 +138,21 @@ fn parse_type(buffer: &[TokenTree], ty: &str) -> Result<String, MacroError> {
         }
     } else {
         match ty {
-            //"Vec" => {}
+            "Vec" => {
+                // parse what is inside Vec< .. >
+                let TT::Ident(ref ident) = buffer[2] else {
+                    error_single!(&buffer[2], "expected Type identifier")
+                };
+                let inner_name = ident.to_string();
+                let inner = parse_type(&buffer[2..(buffer.len() - 1)], &inner_name)?;
+                format!(
+                    r#"
+Type::Vec(VecType {{
+    element: &{inner},
+    vtable: VecVtableCreator::<{inner_name}>::VTABLE,
+}})"#
+                )
+            }
             _ => error!(
                 &[buffer[0].clone(), buffer.last().unwrap().clone()],
                 "Quicksilver does not support this type."
