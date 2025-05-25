@@ -16,28 +16,36 @@ fn main() -> eframe::Result {
     eframe::run_native(
         "My egui App",
         options,
-        Box::new(|_cc| Ok(Box::<MyApp>::default())),
+        Box::new(|_cc| Ok(Box::<Person>::default())),
     )
 }
 
 #[derive(Debug, Quicksilver)]
-struct MyApp {
+struct Person {
     name: String,
     age: u32,
     kids: u32,
+    pos: Pos,
 }
 
-impl Default for MyApp {
+#[derive(Debug, Quicksilver)]
+struct Pos {
+    x: i32,
+    y: i32,
+}
+
+impl Default for Person {
     fn default() -> Self {
         Self {
             name: "Arthur".to_owned(),
             age: 42,
             kids: 2,
+            pos: Pos { x: 2, y: 3 },
         }
     }
 }
 
-impl eframe::App for MyApp {
+impl eframe::App for Person {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             draw_reflection(ui, &mut reflect(self));
@@ -53,44 +61,35 @@ fn draw_reflection(ui: &mut egui::Ui, r: &mut StructReflection) {
     ui.heading(r.name);
     egui::Grid::new("Grid")
         .min_col_width(50.)
+        .num_columns(2)
         .show(ui, |ui| {
-        for field in &mut r.fields {
-            let field_label = ui.label(field.name);
-            match &mut field.value {
-                ValueReflection::I32(_) => todo!(),
-                ValueReflection::U32(it) => {
-                    ui.add(egui::DragValue::new(*it))
-                        .labelled_by(field_label.id);
-                }
-                ValueReflection::F32(_) => todo!(),
-                ValueReflection::String(s) => {
-                    ui.text_edit_singleline(*s).labelled_by(field_label.id);
-                }
-                ValueReflection::Struct(_struct_reflection) => todo!(),
-                ValueReflection::Vec(_vec_reflection) => todo!(),
+            for field in &mut r.fields {
+                ui.label(field.name);
+                draw_value(ui, &mut field.value);
+                ui.end_row();
             }
-            ui.end_row();
+        });
+}
+
+fn draw_value(ui: &mut egui::Ui, value: &mut ValueReflection) {
+    match value {
+        ValueReflection::I32(it) => {
+            ui.add(egui::DragValue::new(*it));
         }
-    });
-    ui.columns(2, |columns| {
-        for field in &mut r.fields {
-            let field_label = columns[0].label(field.name);
-            match &mut field.value {
-                ValueReflection::I32(_) => todo!(),
-                ValueReflection::U32(it) => {
-                    columns[1]
-                        .add(egui::DragValue::new(*it))
-                        .labelled_by(field_label.id);
-                }
-                ValueReflection::F32(_) => todo!(),
-                ValueReflection::String(s) => {
-                    columns[1]
-                        .text_edit_singleline(*s)
-                        .labelled_by(field_label.id);
-                }
-                ValueReflection::Struct(_struct_reflection) => todo!(),
-                ValueReflection::Vec(_vec_reflection) => todo!(),
-            }
+        ValueReflection::U32(it) => {
+            ui.add(egui::DragValue::new(*it));
         }
-    });
+        ValueReflection::F32(it) => {
+            ui.add(egui::DragValue::new(*it));
+        }
+        ValueReflection::String(s) => {
+            ui.text_edit_singleline(*s);
+        }
+        ValueReflection::Struct(s) => {
+            ui.vertical(|ui| {
+                draw_reflection(ui, s);
+            });
+        }
+        ValueReflection::Vec(_vec_reflection) => todo!(),
+    }
 }
