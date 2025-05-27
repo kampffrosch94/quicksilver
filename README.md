@@ -17,17 +17,17 @@ It has minimal compile time impact.
 | `u32`      | :white_check_mark:   |
 | `i32`      | :white_check_mark:   |
 | `f32`      | :white_check_mark:   |
-| `u64`      | 🚧:   |
-| `i64`      | 🚧:   |
-| `usize`      | 🚧:   |
-| `isize`      | 🚧:   |
-| `f64`      | 🚧:   |
+| `u64`      | 🚧   |
+| `i64`      | 🚧   |
+| `usize`      | 🚧   |
+| `isize`      | 🚧   |
+| `f64`      | 🚧   |
 | `bool`     | :white_check_mark:   |
 | `String`   | :white_check_mark:   |
 | `Vec<T>`      | :white_check_mark:   |
 | `HashMap<K,V>`      | 🚧   |
 | `Option<T>`      | 🚧   |
-| custom Struct      | ✅   |
-| custom C-Style enum      | 🚧   |
+| custom `struct`      | ✅   |
+| custom C-Style `enum`      | 🚧   |
 
 
