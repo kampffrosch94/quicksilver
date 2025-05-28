@@ -16,7 +16,7 @@ macro_rules! error_single {
     };
 }
 
-#[proc_macro_derive(Quicksilver)]
+#[proc_macro_derive(Quicksilver, attributes(skip))]
 pub fn derive_quicksilver(input: TokenStream) -> TokenStream {
     return match inner(input) {
         Ok(tt) => tt,
@@ -28,7 +28,20 @@ fn inner(item: TokenStream) -> Result<TokenStream, MacroError> {
     dbg!(&item);
     let mut iter = item.into_iter();
     match (iter.next(), iter.next(), iter.next(), iter.next()) {
+        // regular old struct
         (Some(TT::Ident(s)), Some(TT::Ident(name)), Some(TT::Group(fields)), None) => {
+            assert_eq!("struct", s.to_string());
+            let name = name.to_string();
+            let fields = parse_fields(fields.stream())?;
+            generate_impl(name, fields)
+        }
+        // tuple struct
+        (
+            Some(TT::Ident(s)),
+            Some(TT::Ident(name)),
+            Some(TT::Group(fields)),
+            Some(TT::Punct(_)),
+        ) => {
             assert_eq!("struct", s.to_string());
             let name = name.to_string();
             let fields = parse_fields(fields.stream())?;
@@ -51,8 +64,13 @@ impl Reflection for {name} {{
         fields: &["#
     )
     .unwrap();
-    for field in &fields {
-        generate_field(result, field);
+
+    for (i, field) in fields.into_iter().enumerate() {
+        generate_field(
+            result,
+            &field.name.unwrap_or_else(|| format!("{i}")),
+            &field.ty,
+        );
     }
 
     write!(
@@ -67,9 +85,7 @@ impl Reflection for {name} {{
     Ok(result.parse().unwrap())
 }
 
-fn generate_field(result: &mut String, field: &Field) {
-    let name = &field.name;
-    let ty = &field.ty;
+fn generate_field(result: &mut String, name: &str, ty: &str) {
     write!(
         result,
         r#"
@@ -83,7 +99,7 @@ Field {{
 }
 
 struct Field {
-    name: String,
+    name: Option<String>,
     ty: String,
 }
 
@@ -103,6 +119,9 @@ fn parse_fields(input: TokenStream) -> Result<Vec<Field>, MacroError> {
 
         current = iter.next();
     }
+    if buffer.len() > 0 {
+        result.push(parse_field(&buffer)?);
+    }
 
     Ok(result)
 }
@@ -111,11 +130,16 @@ fn parse_field(buffer: &[TokenTree]) -> Result<Field, MacroError> {
     dbg!(buffer);
     let mut iter = buffer.iter();
     match (iter.next(), iter.next(), iter.next()) {
+        (Some(TT::Ident(ty)), None, None) => {
+            let name = None;
+            let ty = parse_type(&buffer, &ty.to_string())?;
+            Ok(Field { name, ty })
+        }
         (Some(TT::Ident(name)), Some(tt_colon @ TT::Punct(colon)), Some(TT::Ident(ty))) => {
             if colon.as_char() != ':' {
                 error_single!(tt_colon, "Expected ':'")
             }
-            let name = name.to_string();
+            let name = Some(name.to_string());
             let buffer = &buffer[2..];
             let ty = parse_type(&buffer, &ty.to_string())?;
             Ok(Field { name, ty })

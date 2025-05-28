@@ -15,6 +15,9 @@ struct VecHolder {
     values: Vec<Point>,
 }
 
+#[derive(Debug, PartialEq, Quicksilver)]
+struct TuplePoint2f(f32, f32);
+
 #[test]
 fn vec_roundtrip() {
     let mut val = VecHolder {
