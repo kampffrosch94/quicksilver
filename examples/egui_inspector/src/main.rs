@@ -112,32 +112,47 @@ fn draw_reflection(ui: &mut egui::Ui, r: &mut StructReflection) {
 fn draw_value(ui: &mut egui::Ui, value: &mut ValueReflection) {
     match value {
         ValueReflection::I32(it) => {
-            ui.add(egui::DragValue::new(*it));
-        }
+                ui.add(egui::DragValue::new(*it));
+            }
         ValueReflection::U32(it) => {
-            ui.add(egui::DragValue::new(*it));
-        }
+                ui.add(egui::DragValue::new(*it));
+            }
         ValueReflection::F32(it) => {
-            ui.add(egui::DragValue::new(*it));
-        }
+                ui.add(egui::DragValue::new(*it));
+            }
+        ValueReflection::I64(it) => {
+                ui.add(egui::DragValue::new(*it));
+            }
+        ValueReflection::U64(it) => {
+                ui.add(egui::DragValue::new(*it));
+            }
+        ValueReflection::F64(it) => {
+                ui.add(egui::DragValue::new(*it));
+            }
+        ValueReflection::ISize(it) => {
+                ui.add(egui::DragValue::new(*it));
+            }
+        ValueReflection::USize(it) => {
+                ui.add(egui::DragValue::new(*it));
+            }
         ValueReflection::Bool(it) => {
-            ui.checkbox(it, "");
-        }
+                ui.checkbox(it, "");
+            }
         ValueReflection::String(s) => {
-            ui.text_edit_singleline(*s);
-        }
+                ui.text_edit_singleline(*s);
+            }
         ValueReflection::Struct(s) => {
-            ui.vertical(|ui| {
-                draw_reflection(ui, s);
-            });
-        }
+                ui.vertical(|ui| {
+                    draw_reflection(ui, s);
+                });
+            }
         ValueReflection::Vec(vec) => {
-            ui.vertical(|ui| {
-                let len = vec.len();
-                for i in 0..len {
-                    draw_value(ui, &mut vec.get(i));
-                }
-            });
-        }
+                ui.vertical(|ui| {
+                    let len = vec.len();
+                    for i in 0..len {
+                        draw_value(ui, &mut vec.get(i));
+                    }
+                });
+            }
     }
 }

@@ -22,6 +22,11 @@ pub fn value_to_json(vr: &mut ValueReflection) -> String {
         ValueReflection::I32(val) => format!("{}", **val),
         ValueReflection::U32(val) => format!("{}", **val),
         ValueReflection::F32(val) => format!("{}", **val),
+        ValueReflection::I64(val) => format!("{}", **val),
+        ValueReflection::U64(val) => format!("{}", **val),
+        ValueReflection::F64(val) => format!("{}", **val),
+        ValueReflection::ISize(val) => format!("{}", **val),
+        ValueReflection::USize(val) => format!("{}", **val),
         ValueReflection::Bool(val) => format!("{}", **val),
         ValueReflection::String(val) => {
             let escaped_val = val.replace(r"\", r"\\").replace(r#"""#, r#"\""#);
@@ -75,17 +80,42 @@ unsafe fn deserialize_field(walker: &mut JsonWalker, base: *mut u8, ty: &Type) {
     match ty {
         Type::I32 => unsafe {
             let ptr = base as *mut i32;
-            let val = walker.consume_i32();
+            let val = walker.consume_int();
             ptr.write(val);
         },
         Type::U32 => unsafe {
             let ptr = base as *mut u32;
-            let val = walker.consume_u32();
+            let val = walker.consume_int();
             ptr.write(val);
         },
         Type::F32 => unsafe {
             let ptr = base as *mut f32;
-            let val = walker.consume_f32();
+            let val = walker.consume_float();
+            ptr.write(val);
+        },
+        Type::I64 => unsafe {
+            let ptr = base as *mut i64;
+            let val = walker.consume_int();
+            ptr.write(val);
+        },
+        Type::U64 => unsafe {
+            let ptr = base as *mut u64;
+            let val = walker.consume_int();
+            ptr.write(val);
+        },
+        Type::F64 => unsafe {
+            let ptr = base as *mut f64;
+            let val = walker.consume_int();
+            ptr.write(val);
+        },
+        Type::ISize => unsafe {
+            let ptr = base as *mut isize;
+            let val = walker.consume_int();
+            ptr.write(val);
+        },
+        Type::USize => unsafe {
+            let ptr = base as *mut usize;
+            let val = walker.consume_int();
             ptr.write(val);
         },
         Type::Bool => unsafe {
@@ -147,7 +177,7 @@ mod test {
         name: String,
         value: f32,
         location: Point,
-        is_active: i32, // Using i32 to demonstrate another integer type
+        is_active: usize, // Using i32 to demonstrate another integer type
     }
 
     #[test]

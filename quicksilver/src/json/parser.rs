@@ -1,4 +1,5 @@
-use std::str::Chars;
+use std::fmt::Debug;
+use std::str::{Chars, FromStr};
 
 /// Helper struct for Deserializing
 pub struct JsonWalker<'a> {
@@ -31,7 +32,11 @@ impl JsonWalker<'_> {
         }
     }
 
-    pub fn consume_i32(&mut self) -> i32 {
+    pub fn consume_int<T>(&mut self) -> T
+    where
+        T: FromStr,
+        <T as FromStr>::Err: Debug,
+    {
         let Self { chars, buffer } = self;
         buffer.clear();
 
@@ -45,28 +50,15 @@ impl JsonWalker<'_> {
             c = peek(chars);
         }
         buffer
-            .parse::<i32>()
-            .expect("Couldn't parse as i32: '{buffer}'")
+            .parse::<T>()
+            .expect("Couldn't parse as int: '{buffer}'")
     }
 
-    pub fn consume_u32(&mut self) -> u32 {
-        let Self { chars, buffer } = self;
-        buffer.clear();
-        let mut c = peek(chars);
-        while match c {
-            '0'..='9' | '+' => true,
-            _ => false,
-        } {
-            buffer.push(c);
-            chars.next();
-            c = peek(chars);
-        }
-        buffer
-            .parse::<u32>()
-            .expect("Couldn't parse as i32: '{buffer}'")
-    }
-
-    pub fn consume_f32(&mut self) -> f32 {
+    pub fn consume_float<T>(&mut self) -> T
+    where
+        T: FromStr,
+        <T as FromStr>::Err: Debug,
+    {
         let Self { chars, buffer } = self;
         buffer.clear();
         let mut c = peek(chars);
@@ -79,8 +71,8 @@ impl JsonWalker<'_> {
             c = peek(chars);
         }
         buffer
-            .parse::<f32>()
-            .expect("Couldn't parse as i32: '{buffer}'")
+            .parse::<T>()
+            .expect("Couldn't parse as float: '{buffer}'")
     }
 
     #[track_caller]

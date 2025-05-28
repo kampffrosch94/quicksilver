@@ -11,6 +11,11 @@ pub enum Type {
     I32,
     U32,
     F32,
+    I64,
+    U64,
+    F64,
+    ISize,
+    USize,
     Bool,
     String,
     Vec(VecType),
@@ -23,6 +28,11 @@ impl Type {
             Type::I32 => Layout::new::<i32>(),
             Type::U32 => Layout::new::<u32>(),
             Type::F32 => Layout::new::<f32>(),
+            Type::I64 => Layout::new::<i64>(),
+            Type::U64 => Layout::new::<u64>(),
+            Type::F64 => Layout::new::<f64>(),
+            Type::ISize => Layout::new::<isize>(),
+            Type::USize => Layout::new::<usize>(),
             Type::Bool => Layout::new::<bool>(),
             Type::String => Layout::new::<String>(),
             Type::Vec(_) => Layout::new::<Vec<i32>>(),
@@ -61,6 +71,11 @@ pub enum ValueReflection<'a> {
     I32(&'a mut i32),
     U32(&'a mut u32),
     F32(&'a mut f32),
+    I64(&'a mut i64),
+    U64(&'a mut u64),
+    F64(&'a mut f64),
+    ISize(&'a mut isize),
+    USize(&'a mut usize),
     Bool(&'a mut bool),
     String(&'a mut String),
     Struct(Box<StructReflection<'a>>),
@@ -113,6 +128,26 @@ pub unsafe fn reflect_value(ptr: *mut u8, ty: &Type) -> ValueReflection {
         Type::F32 => {
             let value = unsafe { &mut *(ptr as *mut f32) };
             ValueReflection::F32(value)
+        }
+        Type::I64 => {
+            let value = unsafe { &mut *(ptr as *mut i64) };
+            ValueReflection::I64(value)
+        }
+        Type::U64 => {
+            let value = unsafe { &mut *(ptr as *mut u64) };
+            ValueReflection::U64(value)
+        }
+        Type::F64 => {
+            let value = unsafe { &mut *(ptr as *mut f64) };
+            ValueReflection::F64(value)
+        }
+        Type::ISize => {
+            let value = unsafe { &mut *(ptr as *mut isize) };
+            ValueReflection::ISize(value)
+        }
+        Type::USize => {
+            let value = unsafe { &mut *(ptr as *mut usize) };
+            ValueReflection::USize(value)
         }
         Type::Bool => {
             let value = unsafe { &mut *(ptr as *mut bool) };
