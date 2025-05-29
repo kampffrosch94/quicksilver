@@ -4,6 +4,7 @@ pub use quicksilver_derive::Quicksilver;
 use vec::{VecReflection, VecVtable};
 
 pub mod json;
+pub mod map;
 pub mod vec;
 
 #[derive(Debug)]
