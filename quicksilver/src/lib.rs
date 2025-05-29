@@ -1,7 +1,7 @@
 use std::alloc::Layout;
 
 pub use quicksilver_derive::Quicksilver;
-use vec::{VecReflection, VecVtable};
+use vec::{VecReflection, VecVtable, VecVtableCreator};
 
 pub mod json;
 pub mod map;
@@ -168,11 +168,53 @@ pub unsafe fn reflect_value(ptr: *mut u8, ty: &Type) -> ValueReflection {
     }
 }
 
+/// Marks types that can be reflected
+/// implement `Reflection` for making them reflectable
+pub trait Reflectable {
+    const TYPE: Type;
+}
+
+// macro used to implement Reflectable for primitive types
+macro_rules! impl_reflectable {
+    ($ty:ty, $e:expr) => {
+        impl Reflectable for $ty {
+            const TYPE: Type = $e;
+        }
+    };
+}
+
+impl_reflectable!(bool, Type::Bool);
+impl_reflectable!(u32, Type::U32);
+impl_reflectable!(i32, Type::I32);
+impl_reflectable!(f32, Type::F32);
+impl_reflectable!(u64, Type::U64);
+impl_reflectable!(i64, Type::I64);
+impl_reflectable!(f64, Type::F64);
+impl_reflectable!(usize, Type::USize);
+impl_reflectable!(isize, Type::ISize);
+impl_reflectable!(String, Type::String);
+
+impl<T> Reflectable for Vec<T>
+where
+    T: Reflectable,
+{
+    const TYPE: Type = Type::Vec(VecType {
+        element: &T::TYPE,
+        vtable: VecVtableCreator::<T>::VTABLE,
+    });
+}
+
+impl<T> Reflectable for T
+where
+    T: Reflection,
+{
+    const TYPE: Type = Type::Struct(T::MIRROR);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    use std::mem;
     #[derive(Debug, Quicksilver)]
     struct Point {
         x: i32,

@@ -1,6 +1,6 @@
 use std::{collections::HashMap, marker::PhantomData};
 
-use crate::{Reflection, Type, ValueReflection, reflect_value};
+use crate::{FieldReflection, Reflection, StructReflection, Type, ValueReflection, reflect_value};
 use std::hash::Hash;
 
 #[derive(Debug)]
@@ -22,6 +22,25 @@ pub struct HMEntryView<Key, Value> {
     /// never ever mutate the key itself
     key: *const Key,
     value: *mut Value,
+}
+
+impl<Key, Value> HMEntryView<Key, Value> {
+    /// unsafe because caller needs to uphold lifetime invariant
+    unsafe fn reflect(self) -> StructReflection<'static> {
+        StructReflection {
+            name: "HMEntry",
+            fields: vec![
+                FieldReflection {
+                    name: "key",
+                    value: todo!(),
+                },
+                FieldReflection {
+                    name: "value",
+                    value: todo!(),
+                },
+            ],
+        }
+    }
 }
 
 pub struct HMVtableCreator<Key, Value> {

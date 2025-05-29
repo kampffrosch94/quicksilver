@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::{Reflection, Type, ValueReflection, reflect_value};
+use crate::{Reflectable, Reflection, Type, ValueReflection, reflect_value};
 
 #[derive(Debug)]
 pub struct VecVtable {
@@ -23,18 +23,9 @@ pub struct VecVtableCreator<T> {
     _phantom: PhantomData<T>,
 }
 
-pub trait TableAble {}
-
-impl<T> TableAble for T where T: Reflection {}
-impl TableAble for u32 {}
-impl TableAble for i32 {}
-impl TableAble for f32 {}
-impl TableAble for String {}
-impl<T> TableAble for Vec<T> where T: TableAble {}
-
 impl<T> VecVtableCreator<T>
 where
-    T: TableAble,
+    T: Reflectable,
 {
     pub const VTABLE: VecVtable = VecVtable {
         new_at: Self::new_at,

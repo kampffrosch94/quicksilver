@@ -153,19 +153,7 @@ fn parse_field(buffer: &[TokenTree]) -> Result<Field, MacroError> {
 
 fn parse_type(buffer: &[TokenTree], ty: &str) -> Result<String, MacroError> {
     Ok(if buffer.len() == 1 {
-        match ty {
-            "i32" => "Type::I32".to_string(),
-            "u32" => "Type::U32".to_string(),
-            "f32" => "Type::F32".to_string(),
-            "i64" => "Type::I64".to_string(),
-            "u64" => "Type::U64".to_string(),
-            "f64" => "Type::F64".to_string(),
-            "isize" => "Type::ISize".to_string(),
-            "usize" => "Type::USize".to_string(),
-            "bool" => "Type::Bool".to_string(),
-            "String" => "Type::String".to_string(),
-            s => format!("Type::Struct({s}::MIRROR)"),
-        }
+        format!("{ty}::TYPE")
     } else {
         match ty {
             "Vec" => {
