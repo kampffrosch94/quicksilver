@@ -3,7 +3,7 @@ mod parser;
 
 use parser::{JsonWalker, peek};
 
-use crate::{Reflection, Struct, StructReflection, Type, ValueReflection};
+use crate::{reflections::{StructReflection, ValueReflection}, Reflection, Struct, Type};
 
 impl<'a> StructReflection<'a> {
     pub fn to_json_string(&mut self) -> String {
@@ -199,7 +199,7 @@ unsafe fn deserialize_field(walker: &mut JsonWalker, base: *mut u8, ty: &Type) {
 
 #[cfg(test)]
 mod test {
-    use crate::{json::from_json, *};
+    use crate::{json::from_json, reflections::reflect, *};
     #[derive(Debug, PartialEq, Quicksilver)]
     struct Point {
         x: i32,

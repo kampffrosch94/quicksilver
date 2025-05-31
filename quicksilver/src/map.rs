@@ -1,7 +1,9 @@
 use std::{collections::HashMap, marker::PhantomData};
 
-use crate::{FieldReflection, Reflectable, StructReflection, Type, reflect_value};
 use std::hash::Hash;
+
+use crate::reflections::{FieldReflection, StructReflection, reflect_value};
+use crate::{Reflectable, Type};
 
 #[derive(Debug)]
 pub struct HMVtable {
@@ -110,7 +112,7 @@ pub struct HMReflection<'a> {
 }
 
 impl HMReflection<'_> {
-    pub fn get_elements(&mut self) -> Vec<StructReflection<'_>> {
+    pub fn get_elements(&self) -> Vec<StructReflection<'_>> {
         unsafe { (self.vtable.get_elements)(self.ptr) }
     }
 }
