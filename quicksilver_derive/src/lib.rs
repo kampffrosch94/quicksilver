@@ -25,7 +25,6 @@ pub fn derive_quicksilver(input: TokenStream) -> TokenStream {
 }
 
 fn inner(item: TokenStream) -> Result<TokenStream, MacroError> {
-    dbg!(&item);
     let mut iter = item.into_iter();
     match (iter.next(), iter.next(), iter.next(), iter.next()) {
         // regular old struct
@@ -127,7 +126,6 @@ fn parse_fields(input: TokenStream) -> Result<Vec<Field>, MacroError> {
 }
 
 fn parse_field(buffer: &[TokenTree]) -> Result<Field, MacroError> {
-    dbg!(buffer);
     let mut iter = buffer.iter();
     match (iter.next(), iter.next(), iter.next()) {
         (Some(TT::Ident(ty)), None, None) => {
@@ -155,26 +153,13 @@ fn parse_type(buffer: &[TokenTree], ty: &str) -> Result<String, MacroError> {
     Ok(if buffer.len() == 1 {
         format!("{ty}::TYPE")
     } else {
-        match ty {
-            "Vec" => {
-                // parse what is inside Vec< .. >
-                let TT::Ident(ref ident) = buffer[2] else {
-                    error_single!(&buffer[2], "expected Type identifier")
-                };
-                let inner_name = ident.to_string();
-                let inner = parse_type(&buffer[2..(buffer.len() - 1)], &inner_name)?;
-                format!(
-                    r#"
-Type::Vec(VecType {{
-    element: &{inner},
-    vtable: ::quicksilver::vec::VecVtableCreator::<{inner_name}>::VTABLE,
-}})"#
-                )
-            }
-            _ => error!(
-                &[buffer[0].clone(), buffer.last().unwrap().clone()],
-                "Quicksilver does not support this type."
-            ),
+        let mut result = String::new();
+        result.push_str(ty);
+        result.push_str("::");
+        for token in &buffer[1..] {
+            result.push_str(&token.to_string());
         }
+        result.push_str("::TYPE");
+        result
     })
 }

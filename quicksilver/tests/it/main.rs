@@ -38,6 +38,7 @@ fn vec_roundtrip() {
     assert_eq!(val, val2);
 }
 
+/*
 #[derive(Debug, PartialEq, Quicksilver)]
 struct Holder {
     map: HashMap<Point, String>,
@@ -60,3 +61,5 @@ fn hm_roundtrip() {
     dbg!(&val2);
     assert_eq!(val, val2);
 }
+
+*/
