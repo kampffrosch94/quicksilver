@@ -3,37 +3,40 @@ mod parser;
 
 use parser::{JsonWalker, peek};
 
-use crate::{reflections::{StructReflection, ValueReflection}, Reflection, Struct, Type};
+use crate::{
+    Reflection, Struct, Type,
+    reflections_ref::{StructReflectionRef, ValueReflectionRef},
+};
 
-impl<'a> StructReflection<'a> {
-    pub fn to_json_string(&mut self) -> String {
+impl<'a> StructReflectionRef<'a> {
+    pub fn to_json_string(&self) -> String {
         let mut json_parts = Vec::new();
-        for field in &mut self.fields {
+        for field in &self.fields {
             let field_name = format!("\"{}\"", field.name);
-            let field_value = value_to_json(&mut field.value);
+            let field_value = value_to_json(&field.value);
             json_parts.push(format!("{}:{}", field_name, field_value));
         }
         format!("{{{}}}", json_parts.join(","))
     }
 }
 
-pub fn value_to_json(vr: &mut ValueReflection) -> String {
+pub fn value_to_json(vr: &ValueReflectionRef) -> String {
     match vr {
-        ValueReflection::I32(val) => format!("{}", **val),
-        ValueReflection::U32(val) => format!("{}", **val),
-        ValueReflection::F32(val) => format!("{}", **val),
-        ValueReflection::I64(val) => format!("{}", **val),
-        ValueReflection::U64(val) => format!("{}", **val),
-        ValueReflection::F64(val) => format!("{}", **val),
-        ValueReflection::ISize(val) => format!("{}", **val),
-        ValueReflection::USize(val) => format!("{}", **val),
-        ValueReflection::Bool(val) => format!("{}", **val),
-        ValueReflection::String(val) => {
+        ValueReflectionRef::I32(val) => format!("{}", **val),
+        ValueReflectionRef::U32(val) => format!("{}", **val),
+        ValueReflectionRef::F32(val) => format!("{}", **val),
+        ValueReflectionRef::I64(val) => format!("{}", **val),
+        ValueReflectionRef::U64(val) => format!("{}", **val),
+        ValueReflectionRef::F64(val) => format!("{}", **val),
+        ValueReflectionRef::ISize(val) => format!("{}", **val),
+        ValueReflectionRef::USize(val) => format!("{}", **val),
+        ValueReflectionRef::Bool(val) => format!("{}", **val),
+        ValueReflectionRef::String(val) => {
             let escaped_val = val.replace(r"\", r"\\").replace(r#"""#, r#"\""#);
             format!("\"{}\"", escaped_val)
         }
-        ValueReflection::Struct(s_ref) => s_ref.to_json_string(),
-        ValueReflection::Vec(vec_reflection) => {
+        ValueReflectionRef::Struct(s_ref) => s_ref.to_json_string(),
+        ValueReflectionRef::Vec(vec_reflection) => {
             let mut ret = "[".to_string();
             let len = vec_reflection.len();
             let mut first = true;
@@ -41,13 +44,13 @@ pub fn value_to_json(vr: &mut ValueReflection) -> String {
                 if !first {
                     ret.push(',');
                 }
-                ret.push_str(&value_to_json(&mut vec_reflection.get(i)));
+                ret.push_str(&value_to_json(&vec_reflection.get(i)));
                 first = false;
             }
             ret.push(']');
             ret
         }
-        ValueReflection::HashMap(hmreflection) => {
+        ValueReflectionRef::HashMap(hmreflection) => {
             let vec_reflection = &mut hmreflection.get_elements();
             let mut ret = "[".to_string();
             let mut first = true;
@@ -199,7 +202,7 @@ unsafe fn deserialize_field(walker: &mut JsonWalker, base: *mut u8, ty: &Type) {
 
 #[cfg(test)]
 mod test {
-    use crate::{json::from_json, reflections::reflect, *};
+    use crate::{json::from_json, reflections_ref::reflect_ref, *};
     #[derive(Debug, PartialEq, Quicksilver)]
     struct Point {
         x: i32,
@@ -217,7 +220,7 @@ mod test {
 
     #[test]
     fn test_json_serialization() {
-        let mut my_data = MyData {
+        let my_data = MyData {
             id: 789,
             name: "Another \"Test\" String with \\backslashes\\".to_string(),
             value: 123.45,
@@ -225,7 +228,7 @@ mod test {
             is_active: 1,
         };
 
-        let mut reflected_data = reflect(&mut my_data);
+        let reflected_data = reflect_ref(&my_data);
         let json_string = reflected_data.to_json_string();
 
         let expected_json = r#"{"id":789,"name":"Another \"Test\" String with \\backslashes\\","value":123.45,"location":{"x":-5,"y":30},"is_active":1}"#;

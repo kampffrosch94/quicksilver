@@ -3,6 +3,7 @@ use std::marker::PhantomData;
 use crate::{
     Reflectable, Type,
     reflections::{ValueReflection, reflect_value},
+    reflections_ref::{ValueReflectionRef, reflect_value_ref},
 };
 
 #[derive(Debug)]
@@ -20,6 +21,8 @@ pub struct VecVtable {
     pub get_len: unsafe fn(ptr: *mut u8) -> usize,
     /// get element at index
     pub get_elem: unsafe fn(ptr: *mut u8, index: usize) -> *mut u8,
+    /// get element at index immutably
+    pub get_elem_ref: unsafe fn(ptr: *const u8, index: usize) -> *const u8,
 }
 
 pub struct VecVtableCreator<T> {
@@ -36,6 +39,7 @@ where
         reserve: Self::reserve,
         get_len: Self::get_len,
         get_elem: Self::get_elem,
+        get_elem_ref: Self::get_elem_ref,
     };
 
     unsafe fn new_at(ptr: *mut u8, capacity: usize) -> *mut u8 {
@@ -81,6 +85,15 @@ where
             el as *mut u8
         }
     }
+
+    unsafe fn get_elem_ref(ptr: *const u8, index: usize) -> *const u8 {
+        let ptr = ptr as *const Vec<T>;
+        unsafe {
+            let val = &*ptr;
+            let el = &raw const val[index];
+            el as *const u8
+        }
+    }
 }
 
 #[repr(C)]
@@ -96,10 +109,31 @@ impl VecReflection<'_> {
         unsafe { (self.vtable.get_len)(self.ptr) }
     }
 
-    pub fn get(&self, index: usize) -> ValueReflection {
+    pub fn get(&mut self, index: usize) -> ValueReflection {
         unsafe {
             let ptr = (self.vtable.get_elem)(self.ptr, index);
             reflect_value(ptr, &self.element)
+        }
+    }
+}
+
+#[repr(C)]
+pub struct VecReflectionRef<'a> {
+    pub element: &'a Type,
+    pub ptr: *mut u8,
+    pub vtable: &'a VecVtable,
+    pub _phantom: PhantomData<&'a u8>,
+}
+
+impl VecReflectionRef<'_> {
+    pub fn len(&self) -> usize {
+        unsafe { (self.vtable.get_len)(self.ptr) }
+    }
+
+    pub fn get(&self, index: usize) -> ValueReflectionRef {
+        unsafe {
+            let ptr = (self.vtable.get_elem_ref)(self.ptr, index);
+            reflect_value_ref(ptr, &self.element)
         }
     }
 }

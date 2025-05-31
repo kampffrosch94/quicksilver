@@ -9,6 +9,7 @@ use vec::{VecVtable, VecVtableCreator};
 pub mod json;
 pub mod map;
 pub mod reflections;
+pub mod reflections_ref;
 pub mod vec;
 
 #[derive(Debug)]
