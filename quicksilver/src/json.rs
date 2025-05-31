@@ -47,6 +47,9 @@ pub fn value_to_json(vr: &mut ValueReflection) -> String {
             ret.push(']');
             ret
         }
+        ValueReflection::HashMap(hmreflection) => {
+            todo!("serialize hashmap");
+        }
     }
 }
 
@@ -159,6 +162,9 @@ unsafe fn deserialize_field(walker: &mut JsonWalker, base: *mut u8, ty: &Type) {
             (v.vtable.set_len)(base, len);
             walker.consume_char(']');
         },
+        Type::HashMap(hmtype) => {
+            todo!();
+        }
     }
 }
 

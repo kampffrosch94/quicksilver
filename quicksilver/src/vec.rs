@@ -83,9 +83,9 @@ where
 #[repr(C)]
 pub struct VecReflection<'a> {
     pub element: &'a Type,
-    pub(crate) ptr: *mut u8,
-    pub(crate) vtable: &'a VecVtable,
-    pub(crate) _phantom: PhantomData<&'a u8>,
+    pub ptr: *mut u8,
+    pub vtable: &'a VecVtable,
+    pub _phantom: PhantomData<&'a u8>,
 }
 
 impl VecReflection<'_> {

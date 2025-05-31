@@ -62,8 +62,8 @@ impl<Key, Value> HMVtableCreator<Key, Value>
 where
     Key: Eq,
     Key: Hash,
-    Key: Reflection,
-    Value: Reflection,
+    Key: Reflectable,
+    Value: Reflectable,
 {
     pub const VTABLE: HMVtable = HMVtable {
         new_at: Self::new_at,
@@ -105,5 +105,20 @@ where
             }
         }
         result
+    }
+}
+
+#[repr(C)]
+pub struct HMReflection<'a> {
+    pub key: &'a Type,
+    pub value: &'a Type,
+    pub ptr: *mut u8,
+    pub vtable: &'a HMVtable,
+    pub _phantom: PhantomData<&'a u8>,
+}
+
+impl HMReflection<'_> {
+    pub fn get_elements(&mut self) -> Vec<StructReflection<'_>> {
+        unsafe { (self.vtable.get_elements)(self.ptr) }
     }
 }

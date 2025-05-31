@@ -1,5 +1,8 @@
 use std::alloc::Layout;
+use std::collections::HashMap;
+use std::hash::Hash;
 
+use map::{HMReflection, HMVtable, HMVtableCreator};
 pub use quicksilver_derive::Quicksilver;
 use vec::{VecReflection, VecVtable, VecVtableCreator};
 
@@ -20,6 +23,7 @@ pub enum Type {
     Bool,
     String,
     Vec(VecType),
+    HashMap(HMType),
     Struct(&'static Struct),
 }
 
@@ -37,6 +41,7 @@ impl Type {
             Type::Bool => Layout::new::<bool>(),
             Type::String => Layout::new::<String>(),
             Type::Vec(_) => Layout::new::<Vec<i32>>(),
+            Type::HashMap(_) => Layout::new::<HashMap<i32, i32>>(),
             Type::Struct(s) => unsafe { Layout::from_size_align_unchecked(s.size, s.align) },
         }
     }
@@ -46,6 +51,13 @@ impl Type {
 pub struct VecType {
     pub element: &'static Type,
     pub vtable: VecVtable,
+}
+
+#[derive(Debug)]
+pub struct HMType {
+    pub key: &'static Type,
+    pub value: &'static Type,
+    pub vtable: HMVtable,
 }
 
 #[derive(Debug)]
@@ -81,6 +93,7 @@ pub enum ValueReflection<'a> {
     String(&'a mut String),
     Struct(Box<StructReflection<'a>>),
     Vec(Box<VecReflection<'a>>),
+    HashMap(Box<HMReflection<'a>>),
 }
 
 #[repr(C)]
@@ -165,6 +178,9 @@ pub unsafe fn reflect_value(ptr: *mut u8, ty: &Type) -> ValueReflection {
             vtable: &v.vtable,
             _phantom: std::marker::PhantomData,
         })),
+        Type::HashMap(hm) => {
+            todo!();
+        }
     }
 }
 
@@ -194,6 +210,13 @@ impl_reflectable!(usize, Type::USize);
 impl_reflectable!(isize, Type::ISize);
 impl_reflectable!(String, Type::String);
 
+impl<T> Reflectable for T
+where
+    T: Reflection,
+{
+    const TYPE: Type = Type::Struct(T::MIRROR);
+}
+
 impl<T> Reflectable for Vec<T>
 where
     T: Reflectable,
@@ -204,11 +227,17 @@ where
     });
 }
 
-impl<T> Reflectable for T
+impl<Key, Val> Reflectable for HashMap<Key, Val>
 where
-    T: Reflection,
+    Key: Eq + Hash,
+    Key: Reflectable,
+    Val: Reflectable,
 {
-    const TYPE: Type = Type::Struct(T::MIRROR);
+    const TYPE: Type = Type::HashMap(HMType {
+        key: &Key::TYPE,
+        value: &Key::TYPE,
+        vtable: HMVtableCreator::<Key, Val>::VTABLE,
+    });
 }
 
 #[cfg(test)]
