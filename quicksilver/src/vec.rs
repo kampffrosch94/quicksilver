@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::{Reflectable, Reflection, Type, ValueReflection, reflect_value};
+use crate::{Reflectable, Type, ValueReflection, reflect_value};
 
 #[derive(Debug)]
 pub struct VecVtable {

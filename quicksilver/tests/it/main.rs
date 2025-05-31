@@ -57,6 +57,7 @@ fn hm_roundtrip() {
     val.map
         .insert(Point { x: 3, y: 2 }, "Point of deep regret".to_string());
     let s = reflect(&mut val).to_json_string();
+    println!("{}", &s);
     let val2 = from_json::<HMHolder>(&s);
     dbg!(&val2);
     assert_eq!(val, val2);

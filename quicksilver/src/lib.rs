@@ -231,16 +231,16 @@ where
     });
 }
 
-impl<Key, Val> Reflectable for HashMap<Key, Val>
+impl<Key, Value> Reflectable for HashMap<Key, Value>
 where
     Key: Eq + Hash,
     Key: Reflectable,
-    Val: Reflectable,
+    Value: Reflectable,
 {
     const TYPE: Type = Type::HashMap(HMType {
         key: &Key::TYPE,
-        value: &Key::TYPE,
-        vtable: HMVtableCreator::<Key, Val>::VTABLE,
+        value: &Value::TYPE,
+        vtable: HMVtableCreator::<Key, Value>::VTABLE,
     });
 }
 
@@ -365,6 +365,6 @@ mod tests {
 
     #[test]
     fn test_derive() {
-        let mirror = Point3d::MIRROR;
+        let _mirror = Point3d::MIRROR;
     }
 }

@@ -1,7 +1,7 @@
 use std::mem::MaybeUninit;
 mod parser;
 
-use parser::JsonWalker;
+use parser::{JsonWalker, peek};
 
 use crate::{Reflection, Struct, StructReflection, Type, ValueReflection};
 
@@ -73,12 +73,13 @@ pub fn from_json<T: Reflection>(s: &str) -> T {
         buffer: String::new(),
     };
     unsafe {
-        from_json_inner(&mut walker, ptr as *mut u8, mirror);
+        deserialize_struct(&mut walker, ptr as *mut u8, mirror);
         result.assume_init()
     }
 }
 
-unsafe fn from_json_inner(walker: &mut JsonWalker, base: *mut u8, mirror: &Struct) {
+unsafe fn deserialize_struct(walker: &mut JsonWalker, base: *mut u8, mirror: &Struct) {
+    println!("{}", walker.chars.as_str());
     walker.consume_char('{');
     for field in mirror.fields {
         walker.consume_field(field.name);
@@ -141,7 +142,7 @@ unsafe fn deserialize_field(walker: &mut JsonWalker, base: *mut u8, ty: &Type) {
             ptr.write(val);
         },
         Type::Struct(inner_mirror) => unsafe {
-            from_json_inner(walker, base, inner_mirror);
+            deserialize_struct(walker, base, inner_mirror);
         },
         Type::Vec(v) => unsafe {
             walker.consume_char('[');
@@ -151,7 +152,7 @@ unsafe fn deserialize_field(walker: &mut JsonWalker, base: *mut u8, ty: &Type) {
             let stride = v.element.layout().size();
 
             let mut is_first = true;
-            while !walker.chars.as_str().starts_with(']') {
+            while peek(&walker.chars) != ']' {
                 if !is_first {
                     walker.consume_char(',');
                 }
@@ -171,9 +172,28 @@ unsafe fn deserialize_field(walker: &mut JsonWalker, base: *mut u8, ty: &Type) {
             (v.vtable.set_len)(base, len);
             walker.consume_char(']');
         },
-        Type::HashMap(hmtype) => {
-            todo!("Deserialize hashmap");
-        }
+        Type::HashMap(hm) => unsafe {
+            (hm.vtable.new_at)(base);
+            walker.consume_char('[');
+            while peek(&walker.chars) != ']' {
+                walker.consume_maybe(',');
+                let key = std::alloc::alloc(hm.key.layout());
+                let value = std::alloc::alloc(hm.value.layout());
+                walker.consume_char('{');
+                walker.consume_field("key");
+                deserialize_field(walker, key, hm.key);
+                walker.consume_char(',');
+                println!("Key Ok");
+                walker.consume_field("value");
+                dbg!(hm);
+                deserialize_field(walker, value, hm.value);
+
+                println!("Value Ok");
+                walker.consume_char('}');
+                (hm.vtable.fill_with)(base, key, value);
+            }
+            walker.consume_char(']');
+        },
     }
 }
 

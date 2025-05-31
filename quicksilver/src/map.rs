@@ -1,39 +1,29 @@
 use std::{collections::HashMap, marker::PhantomData};
 
-use crate::{
-    FieldReflection, Reflectable, Reflection, StructReflection, Type, ValueReflection,
-    reflect_value,
-};
+use crate::{FieldReflection, Reflectable, StructReflection, Type, reflect_value};
 use std::hash::Hash;
 
 #[derive(Debug)]
 pub struct HMVtable {
     /// creates the HashMap of current Type at the pointer coordinate
     pub new_at: unsafe fn(ptr: *mut u8),
-    /// adds elements to hashmap
-    /// elements needs to be a pointer to a `Vec<HashMapEntry<K,V>>`
-    pub fill_with: unsafe fn(ptr: *mut u8, elements: *mut u8),
+    /// adds element to hashmap
+    /// element pointers need to be created with Box::into_raw
+    pub fill_with: unsafe fn(ptr: *mut u8, key_ptr: *mut u8, value_ptr: *mut u8),
     /// returns all elements in HashMap in whatever iteration order it sees fit
     pub get_elements: unsafe fn(ptr: *mut u8) -> Vec<StructReflection<'static>>,
 }
 
-pub struct HMEntry<Key, Value> {
-    pub key: Key,
-    pub value: Value,
-}
-
 /// pointers to Keys and Values inside the HashMap
-pub struct HMEntryView<Key, Value> {
+pub struct HMEntryView {
     /// never ever mutate the key itself
-    key: *const Key,
-    value: *mut Value,
+    pub key: *mut u8,
+    pub value: *mut u8,
+    pub key_t: &'static Type,
+    pub value_t: &'static Type,
 }
 
-impl<Key, Value> HMEntryView<Key, Value>
-where
-    Key: Reflectable,
-    Value: Reflectable,
-{
+impl HMEntryView {
     /// unsafe because caller needs to uphold lifetime invariant
     unsafe fn reflect(self) -> StructReflection<'static> {
         StructReflection {
@@ -42,11 +32,11 @@ where
                 vec![
                     FieldReflection {
                         name: "key",
-                        value: reflect_value(self.key as *mut u8, &Key::TYPE),
+                        value: reflect_value(self.key, self.key_t),
                     },
                     FieldReflection {
                         name: "value",
-                        value: reflect_value(self.value as *mut u8, &Key::TYPE),
+                        value: reflect_value(self.value, self.value_t),
                     },
                 ]
             },
@@ -79,15 +69,15 @@ where
         }
     }
 
-    unsafe fn fill_with(ptr: *mut u8, elements: *mut u8) {
+    unsafe fn fill_with(ptr: *mut u8, key_ptr: *mut u8, value_ptr: *mut u8) {
         let ptr = ptr as *mut HashMap<Key, Value>;
-        let elements = elements as *mut Vec<HMEntry<Key, Value>>;
+        let key_ptr = key_ptr as *mut Key;
+        let value_ptr = value_ptr as *mut Value;
         unsafe {
             let hm = &mut *ptr;
-            let elements = &mut *elements;
-            for element in elements.drain(..) {
-                hm.insert(element.key, element.value);
-            }
+            let key: Key = *Box::from_raw(key_ptr);
+            let value = *Box::from_raw(value_ptr);
+            hm.insert(key, value);
         }
     }
 
@@ -98,8 +88,10 @@ where
             let val = &mut *ptr;
             for (key, value) in val.iter_mut() {
                 let el = HMEntryView {
-                    key: key as *const Key,
-                    value: value as *mut Value,
+                    key: key as *const Key as *mut u8,
+                    value: value as *mut Value as *mut u8,
+                    key_t: &Key::TYPE,
+                    value_t: &Value::TYPE,
                 };
                 result.push(el.reflect());
             }
