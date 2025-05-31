@@ -108,11 +108,19 @@ fn parse_fields(input: TokenStream) -> Result<Vec<Field>, MacroError> {
     let mut result = Vec::new();
 
     let mut current = iter.next();
+    // because types can use commas inside themselves like `HashMap<X,Y>`
+    // we need to check that we are not inside the type of a field via nesting level
+    let mut level = 0;
     while matches!(current, Some(_)) {
-        if matches!(current, Some(TT::Punct(ref comma)) if comma.as_char() == ',') {
+        if matches!(current, Some(TT::Punct(ref comma)) if comma.as_char() == ',') && level == 0 {
             result.push(parse_field(&buffer)?);
             buffer.clear();
         } else {
+            if matches!(current, Some(TT::Punct(ref c)) if c.as_char() == '<') {
+                level += 1;
+            } else if matches!(current, Some(TT::Punct(ref c)) if c.as_char() == '>') {
+                level -= 1;
+            }
             buffer.push(current.unwrap());
         }
 
@@ -151,7 +159,10 @@ fn parse_field(buffer: &[TokenTree]) -> Result<Field, MacroError> {
 
 fn parse_type(buffer: &[TokenTree], ty: &str) -> Result<String, MacroError> {
     Ok(if buffer.len() == 1 {
-        format!("{ty}::TYPE")
+        let mut result = String::new();
+        result.push_str(ty);
+        result.push_str("::TYPE");
+        result
     } else {
         let mut result = String::new();
         result.push_str(ty);

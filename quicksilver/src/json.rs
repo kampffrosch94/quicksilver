@@ -48,7 +48,18 @@ pub fn value_to_json(vr: &mut ValueReflection) -> String {
             ret
         }
         ValueReflection::HashMap(hmreflection) => {
-            todo!("serialize hashmap");
+            let vec_reflection = &mut hmreflection.get_elements();
+            let mut ret = "[".to_string();
+            let mut first = true;
+            for elem in vec_reflection {
+                if !first {
+                    ret.push(',');
+                }
+                ret.push_str(&elem.to_json_string());
+                first = false;
+            }
+            ret.push(']');
+            ret
         }
     }
 }
@@ -70,8 +81,6 @@ pub fn from_json<T: Reflection>(s: &str) -> T {
 unsafe fn from_json_inner(walker: &mut JsonWalker, base: *mut u8, mirror: &Struct) {
     walker.consume_char('{');
     for field in mirror.fields {
-        dbg!(field);
-        dbg!(walker.chars.as_str());
         walker.consume_field(field.name);
         unsafe { deserialize_field(walker, base.add(field.offset), &field.ty) };
         walker.consume_maybe(',');
@@ -163,7 +172,7 @@ unsafe fn deserialize_field(walker: &mut JsonWalker, base: *mut u8, ty: &Type) {
             walker.consume_char(']');
         },
         Type::HashMap(hmtype) => {
-            todo!();
+            todo!("Deserialize hashmap");
         }
     }
 }

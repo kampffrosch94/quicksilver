@@ -178,9 +178,13 @@ pub unsafe fn reflect_value(ptr: *mut u8, ty: &Type) -> ValueReflection {
             vtable: &v.vtable,
             _phantom: std::marker::PhantomData,
         })),
-        Type::HashMap(hm) => {
-            todo!();
-        }
+        Type::HashMap(hm) => ValueReflection::HashMap(Box::new(HMReflection {
+            key: hm.key,
+            value: hm.value,
+            ptr,
+            vtable: &hm.vtable,
+            _phantom: std::marker::PhantomData,
+        })),
     }
 }
 
