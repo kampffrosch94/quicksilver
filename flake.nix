@@ -1,6 +1,3 @@
-# confirmed to work on nixos with wayland (sway)
-# use with `nix develop`
-# then run `cargo run --example music -F winit/wayland`
 {
   inputs = {
     fenix = {
