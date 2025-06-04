@@ -3,7 +3,7 @@
 
 use std::sync::{Mutex, OnceLock};
 
-use eframe::egui;
+use eframe::{egui, emath};
 use quicksilver::reflections::*;
 use quicksilver::*;
 use winit::platform::x11::EventLoopBuilderExtX11;
@@ -110,37 +110,48 @@ fn draw_reflection(ui: &mut egui::Ui, r: &mut StructReflection) {
         });
 }
 
+fn draw_numeric<Num: emath::Numeric>(ui: &mut egui::Ui, value: &mut RefOrMut<Num>) {
+    match value {
+        RefOrMut::Ref(val) => {
+            todo!();
+        }
+        RefOrMut::Mut(val) => {
+            ui.add(egui::DragValue::new(*val));
+        }
+    }
+}
+
 fn draw_value(ui: &mut egui::Ui, value: &mut ValueReflection) {
     match value {
         ValueReflection::I32(it) => {
-            ui.add(egui::DragValue::new(*it));
+            draw_numeric(ui, it);
         }
         ValueReflection::U32(it) => {
-            ui.add(egui::DragValue::new(*it));
+            draw_numeric(ui, it);
         }
         ValueReflection::F32(it) => {
-            ui.add(egui::DragValue::new(*it));
+            draw_numeric(ui, it);
         }
         ValueReflection::I64(it) => {
-            ui.add(egui::DragValue::new(*it));
+            draw_numeric(ui, it);
         }
         ValueReflection::U64(it) => {
-            ui.add(egui::DragValue::new(*it));
+            draw_numeric(ui, it);
         }
         ValueReflection::F64(it) => {
-            ui.add(egui::DragValue::new(*it));
+            draw_numeric(ui, it);
         }
         ValueReflection::ISize(it) => {
-            ui.add(egui::DragValue::new(*it));
+            draw_numeric(ui, it);
         }
         ValueReflection::USize(it) => {
-            ui.add(egui::DragValue::new(*it));
+            draw_numeric(ui, it);
         }
         ValueReflection::Bool(it) => {
             ui.checkbox(it, "");
         }
         ValueReflection::String(s) => {
-            ui.text_edit_singleline(*s);
+            ui.text_edit_singleline(&mut **s);
         }
         ValueReflection::Struct(s) => {
             ui.vertical(|ui| {
