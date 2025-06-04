@@ -119,8 +119,8 @@ pub enum RefOrMut<'a, T> {
 }
 
 impl<T: Debug> Debug for RefOrMut<'_, T> {
-    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-        todo!()
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        (**self).fmt(f)
     }
 }
 
