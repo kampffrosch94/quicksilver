@@ -187,7 +187,7 @@ mod tests {
         let name_field = &mut reflected_data.fields[1];
         assert_eq!(name_field.name, "name");
         if let ValueReflection::String(name_ref) = &mut name_field.value {
-            assert_eq!(*name_ref, "Test Data");
+            assert_eq!(**name_ref, "Test Data");
             **name_ref = "Modified Name".to_string(); // Modify through reflection
         } else {
             panic!("Expected String for 'name' field");
