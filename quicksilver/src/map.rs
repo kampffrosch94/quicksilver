@@ -37,7 +37,7 @@ impl HMEntryView {
                 vec![
                     FieldReflection {
                         name: "key",
-                        value: reflect_value(self.key, self.key_t),
+                        value: reflect_value_ref(self.key, self.key_t),
                     },
                     FieldReflection {
                         name: "value",
@@ -120,8 +120,7 @@ where
                 result.push(el.reflect());
             }
         }
-        todo!("Only the value may be borrowed mutably, otherwise UB");
-        //result
+        result
     }
 
     unsafe fn get_elements_ref(ptr: *const u8) -> Vec<StructReflection<'static>> {
