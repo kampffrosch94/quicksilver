@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use crate::{
     Reflectable, Type,
     reflections::{ValueReflection, reflect_value},
-    reflections_ref::{ValueReflectionRef, reflect_value_ref},
+    reflections_ref::reflect_value_ref,
 };
 
 #[derive(Debug)]
@@ -115,22 +115,8 @@ impl VecReflection<'_> {
             reflect_value(ptr, &self.element)
         }
     }
-}
 
-#[repr(C)]
-pub struct VecReflectionRef<'a> {
-    pub element: &'a Type,
-    pub ptr: *mut u8,
-    pub vtable: &'a VecVtable,
-    pub _phantom: PhantomData<&'a u8>,
-}
-
-impl VecReflectionRef<'_> {
-    pub fn len(&self) -> usize {
-        unsafe { (self.vtable.get_len)(self.ptr) }
-    }
-
-    pub fn get(&self, index: usize) -> ValueReflectionRef {
+    pub fn get_ref(&self, index: usize) -> ValueReflection {
         unsafe {
             let ptr = (self.vtable.get_elem_ref)(self.ptr, index);
             reflect_value_ref(ptr, &self.element)

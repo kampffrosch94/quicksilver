@@ -5,10 +5,10 @@ use parser::{JsonWalker, peek};
 
 use crate::{
     Reflection, Struct, Type,
-    reflections_ref::{StructReflectionRef, ValueReflectionRef},
+    reflections::{StructReflection, ValueReflection},
 };
 
-impl<'a> StructReflectionRef<'a> {
+impl<'a> StructReflection<'a> {
     pub fn to_json_string(&self) -> String {
         let mut json_parts = Vec::new();
         for field in &self.fields {
@@ -20,23 +20,23 @@ impl<'a> StructReflectionRef<'a> {
     }
 }
 
-pub fn value_to_json(vr: &ValueReflectionRef) -> String {
+pub fn value_to_json(vr: &ValueReflection) -> String {
     match vr {
-        ValueReflectionRef::I32(val) => format!("{}", **val),
-        ValueReflectionRef::U32(val) => format!("{}", **val),
-        ValueReflectionRef::F32(val) => format!("{}", **val),
-        ValueReflectionRef::I64(val) => format!("{}", **val),
-        ValueReflectionRef::U64(val) => format!("{}", **val),
-        ValueReflectionRef::F64(val) => format!("{}", **val),
-        ValueReflectionRef::ISize(val) => format!("{}", **val),
-        ValueReflectionRef::USize(val) => format!("{}", **val),
-        ValueReflectionRef::Bool(val) => format!("{}", **val),
-        ValueReflectionRef::String(val) => {
+        ValueReflection::I32(val) => format!("{}", **val),
+        ValueReflection::U32(val) => format!("{}", **val),
+        ValueReflection::F32(val) => format!("{}", **val),
+        ValueReflection::I64(val) => format!("{}", **val),
+        ValueReflection::U64(val) => format!("{}", **val),
+        ValueReflection::F64(val) => format!("{}", **val),
+        ValueReflection::ISize(val) => format!("{}", **val),
+        ValueReflection::USize(val) => format!("{}", **val),
+        ValueReflection::Bool(val) => format!("{}", **val),
+        ValueReflection::String(val) => {
             let escaped_val = val.replace(r"\", r"\\").replace(r#"""#, r#"\""#);
             format!("\"{}\"", escaped_val)
         }
-        ValueReflectionRef::Struct(s_ref) => s_ref.to_json_string(),
-        ValueReflectionRef::Vec(vec_reflection) => {
+        ValueReflection::Struct(s_ref) => s_ref.to_json_string(),
+        ValueReflection::Vec(vec_reflection) => {
             let mut ret = "[".to_string();
             let len = vec_reflection.len();
             let mut first = true;
@@ -44,14 +44,14 @@ pub fn value_to_json(vr: &ValueReflectionRef) -> String {
                 if !first {
                     ret.push(',');
                 }
-                ret.push_str(&value_to_json(&vec_reflection.get(i)));
+                ret.push_str(&value_to_json(&vec_reflection.get_ref(i)));
                 first = false;
             }
             ret.push(']');
             ret
         }
-        ValueReflectionRef::HashMap(hmreflection) => {
-            let vec_reflection = &mut hmreflection.get_elements();
+        ValueReflection::HashMap(hmreflection) => {
+            let vec_reflection = &mut hmreflection.get_elements_ref();
             let mut ret = "[".to_string();
             let mut first = true;
             for elem in vec_reflection {

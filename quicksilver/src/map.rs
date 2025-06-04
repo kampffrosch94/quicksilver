@@ -3,7 +3,7 @@ use std::{collections::HashMap, marker::PhantomData};
 use std::hash::Hash;
 
 use crate::reflections::{FieldReflection, StructReflection, reflect_value};
-use crate::reflections_ref::{FieldReflectionRef, StructReflectionRef, reflect_value_ref};
+use crate::reflections_ref::reflect_value_ref;
 use crate::{Reflectable, Type};
 
 #[derive(Debug)]
@@ -16,7 +16,7 @@ pub struct HMVtable {
     /// returns all elements in HashMap in whatever iteration order it sees fit
     pub get_elements: unsafe fn(ptr: *mut u8) -> Vec<StructReflection<'static>>,
     /// returns all elements in HashMap in whatever iteration order it sees fit
-    pub get_elements_ref: unsafe fn(ptr: *const u8) -> Vec<StructReflectionRef<'static>>,
+    pub get_elements_ref: unsafe fn(ptr: *const u8) -> Vec<StructReflection<'static>>,
 }
 
 /// pointers to Keys and Values inside the HashMap
@@ -48,16 +48,16 @@ impl HMEntryView {
         }
     }
 
-    unsafe fn reflect_ref(self) -> StructReflectionRef<'static> {
-        StructReflectionRef {
+    unsafe fn reflect_ref(self) -> StructReflection<'static> {
+        StructReflection {
             name: "HMEntry",
             fields: unsafe {
                 vec![
-                    FieldReflectionRef {
+                    FieldReflection {
                         name: "key",
                         value: reflect_value_ref(self.key, self.key_t),
                     },
-                    FieldReflectionRef {
+                    FieldReflection {
                         name: "value",
                         value: reflect_value_ref(self.value, self.value_t),
                     },
@@ -124,7 +124,7 @@ where
         //result
     }
 
-    unsafe fn get_elements_ref(ptr: *const u8) -> Vec<StructReflectionRef<'static>> {
+    unsafe fn get_elements_ref(ptr: *const u8) -> Vec<StructReflection<'static>> {
         let ptr = ptr as *const HashMap<Key, Value>;
         let mut result = Vec::new();
         unsafe {
@@ -156,19 +156,8 @@ impl HMReflection<'_> {
     pub fn get_elements(&self) -> Vec<StructReflection<'_>> {
         unsafe { (self.vtable.get_elements)(self.ptr) }
     }
-}
 
-#[repr(C)]
-pub struct HMReflectionRef<'a> {
-    pub key: &'a Type,
-    pub value: &'a Type,
-    pub ptr: *const u8,
-    pub vtable: &'a HMVtable,
-    pub _phantom: PhantomData<&'a u8>,
-}
-
-impl HMReflectionRef<'_> {
-    pub fn get_elements(&self) -> Vec<StructReflectionRef<'_>> {
+    pub fn get_elements_ref(&self) -> Vec<StructReflection<'_>> {
         unsafe { (self.vtable.get_elements_ref)(self.ptr) }
     }
 }
