@@ -101,6 +101,7 @@ pub unsafe fn reflect_value(ptr: *mut u8, ty: &Type) -> ValueReflection {
             element: v.element,
             ptr,
             vtable: &v.vtable,
+            skip: v.skip,
             _phantom: std::marker::PhantomData,
         })),
         Type::HashMap(hm) => ValueReflection::HashMap(Box::new(HMReflection {
@@ -108,6 +109,7 @@ pub unsafe fn reflect_value(ptr: *mut u8, ty: &Type) -> ValueReflection {
             value: hm.value,
             ptr,
             vtable: &hm.vtable,
+            skip: hm.skip,
             _phantom: std::marker::PhantomData,
         })),
     }

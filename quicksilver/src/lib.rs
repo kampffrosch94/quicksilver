@@ -6,6 +6,7 @@ use map::{HMVtable, HMVtableCreator};
 pub use quicksilver_derive::Quicksilver;
 use vec::{VecVtable, VecVtableCreator};
 
+pub mod empty;
 pub mod json;
 pub mod map;
 pub mod reflections;
@@ -53,6 +54,7 @@ impl Type {
 pub struct VecType {
     pub element: &'static Type,
     pub vtable: VecVtable,
+    pub skip: bool,
 }
 
 #[derive(Debug)]
@@ -60,6 +62,7 @@ pub struct HMType {
     pub key: &'static Type,
     pub value: &'static Type,
     pub vtable: HMVtable,
+    pub skip: bool,
 }
 
 #[derive(Debug)]
@@ -121,6 +124,7 @@ where
     const TYPE: Type = Type::Vec(VecType {
         element: &T::TYPE,
         vtable: VecVtableCreator::<T>::VTABLE,
+        skip: false,
     });
 }
 
@@ -134,6 +138,7 @@ where
         key: &Key::TYPE,
         value: &Value::TYPE,
         vtable: HMVtableCreator::<Key, Value>::VTABLE,
+        skip: false,
     });
 }
 

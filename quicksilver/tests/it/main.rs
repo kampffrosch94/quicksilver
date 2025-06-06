@@ -68,4 +68,36 @@ mod test {
         dbg!(&val2);
         assert_eq!(val, val2);
     }
+
+    use quicksilver::empty::EmptyContainer;
+
+    #[derive(Debug, PartialEq, Quicksilver)]
+    struct HMHolder2 {
+        name: String,
+        #[quicksilver(skip)]
+        map: HashMap<Point, Box<String>>,
+    }
+
+    #[test]
+    fn hm_roundtrip_skipped() {
+        let mut val = HMHolder2 {
+            name: "blab".to_string(),
+            map: HashMap::new(),
+        };
+        val.map.insert(
+            Point { x: 1, y: 2 },
+            Box::new("Point of no return".to_string()),
+        );
+        val.map.insert(
+            Point { x: 2, y: 2 },
+            Box::new("Point of its really too late now".to_string()),
+        );
+        let s = reflect_ref(&val).to_json_string();
+        println!("{}", &s);
+        let val2 = from_json::<HMHolder2>(&s);
+        dbg!(&val2);
+        assert_ne!(val, val2);
+        val.map.clear();
+        assert_eq!(val, val2);
+    }
 }

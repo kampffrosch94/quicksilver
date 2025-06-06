@@ -101,6 +101,7 @@ pub struct VecReflection<'a> {
     pub element: &'a Type,
     pub ptr: *mut u8,
     pub vtable: &'a VecVtable,
+    pub skip: bool,
     pub _phantom: PhantomData<&'a u8>,
 }
 
@@ -122,4 +123,49 @@ impl VecReflection<'_> {
             reflect_value_ref(ptr, &self.element)
         }
     }
+}
+
+pub struct EmptyVecVtableCreator<T> {
+    _phantom: PhantomData<T>,
+}
+
+impl<T> EmptyVecVtableCreator<T> {
+    pub const VTABLE: VecVtable = VecVtable {
+        new_at: Self::new_at,
+        set_len: empty_set_len,
+        reserve: empty_reserve,
+        get_len: empty_get_len,
+        get_elem: empty_get_elem,
+        get_elem_ref: empty_get_elem_ref,
+    };
+
+    unsafe fn new_at(ptr: *mut u8, capacity: usize) -> *mut u8 {
+        let mut v: Vec<T> = Vec::with_capacity(capacity);
+        let ptr = ptr as *mut Vec<T>;
+        unsafe {
+            let out = v.as_mut_ptr();
+            ptr.write(v);
+            out as *mut u8
+        }
+    }
+}
+
+unsafe fn empty_set_len(_ptr: *mut u8, _len: usize) {
+    panic!("Not supported on skipped fields");
+}
+
+unsafe fn empty_reserve(_ptr: *mut u8, _additional: usize) -> *mut u8 {
+    panic!("Not supported on skipped fields");
+}
+
+unsafe fn empty_get_len(_ptr: *mut u8) -> usize {
+    panic!("Not supported on skipped fields");
+}
+
+unsafe fn empty_get_elem(_ptr: *mut u8, _index: usize) -> *mut u8 {
+    panic!("Not supported on skipped fields");
+}
+
+unsafe fn empty_get_elem_ref(_ptr: *const u8, _index: usize) -> *const u8 {
+    panic!("Not supported on skipped fields");
 }

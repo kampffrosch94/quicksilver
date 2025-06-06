@@ -16,7 +16,7 @@ macro_rules! error_single {
     };
 }
 
-#[proc_macro_derive(Quicksilver, attributes(skip))]
+#[proc_macro_derive(Quicksilver, attributes(quicksilver))]
 pub fn derive_quicksilver(input: TokenStream) -> TokenStream {
     return match inner(input) {
         Ok(tt) => tt,
@@ -133,12 +133,35 @@ fn parse_fields(input: TokenStream) -> Result<Vec<Field>, MacroError> {
     Ok(result)
 }
 
-fn parse_field(buffer: &[TokenTree]) -> Result<Field, MacroError> {
+fn parse_field(mut buffer: &[TokenTree]) -> Result<Field, MacroError> {
+    let mut skip = false;
+    if matches!(&buffer[0], TT::Punct(c) if c.as_char() == '#') {
+        if let TT::Group(attribute_group) = &buffer[1] {
+            for a in chunked(attribute_group.stream(), 2) {
+                let [name, group] = &a[..] else {
+                    unreachable!()
+                };
+                if matches!(name, TT::Ident(s) if s.to_string() == "quicksilver") {
+                    let TT::Group(group) = group else {
+                        panic!("Expected group.")
+                    };
+                    for attr in group.stream() {
+                        if matches!(attr, TT::Ident(s) if s.to_string() == "skip") {
+                            skip = true;
+                        }
+                    }
+                }
+            }
+        }
+        buffer = &buffer[2..];
+    }
+
     let mut iter = buffer.iter();
+
     match (iter.next(), iter.next(), iter.next()) {
         (Some(TT::Ident(ty)), None, None) => {
             let name = None;
-            let ty = parse_type(&buffer, &ty.to_string())?;
+            let ty = parse_type(&buffer, &ty.to_string(), skip)?;
             Ok(Field { name, ty })
         }
         (Some(TT::Ident(name)), Some(tt_colon @ TT::Punct(colon)), Some(TT::Ident(ty))) => {
@@ -147,7 +170,7 @@ fn parse_field(buffer: &[TokenTree]) -> Result<Field, MacroError> {
             }
             let name = Some(name.to_string());
             let buffer = &buffer[2..];
-            let ty = parse_type(&buffer, &ty.to_string())?;
+            let ty = parse_type(&buffer, &ty.to_string(), skip)?;
             Ok(Field { name, ty })
         }
         _ => error!(
@@ -157,8 +180,15 @@ fn parse_field(buffer: &[TokenTree]) -> Result<Field, MacroError> {
     }
 }
 
-fn parse_type(buffer: &[TokenTree], ty: &str) -> Result<String, MacroError> {
+fn parse_type(buffer: &[TokenTree], ty: &str, skip: bool) -> Result<String, MacroError> {
     Ok(if buffer.len() == 1 {
+        if skip {
+            error!(
+                &[buffer[0].clone(), buffer.last().unwrap().clone()],
+                "Quicksilver can't skip this field."
+            )
+        }
+        assert!(!skip, "Can't skip this field.");
         let mut result = String::new();
         result.push_str(ty);
         result.push_str("::TYPE");
@@ -170,7 +200,19 @@ fn parse_type(buffer: &[TokenTree], ty: &str) -> Result<String, MacroError> {
         for token in &buffer[1..] {
             result.push_str(&token.to_string());
         }
-        result.push_str("::TYPE");
+        if skip {
+            result.push_str("::EMPTY");
+        } else {
+            result.push_str("::TYPE");
+        }
         result
+    })
+}
+
+fn chunked<I>(a: impl IntoIterator<Item = I>, chunk_size: usize) -> impl Iterator<Item = Vec<I>> {
+    let mut a = a.into_iter();
+    std::iter::from_fn(move || {
+        Some(a.by_ref().take(chunk_size).collect())
+            .filter(|chunk: &Vec<_>| chunk.len() == chunk_size)
     })
 }

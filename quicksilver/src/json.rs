@@ -37,32 +37,40 @@ pub fn value_to_json(vr: &ValueReflection) -> String {
         }
         ValueReflection::Struct(s_ref) => s_ref.to_json_string(),
         ValueReflection::Vec(vec_reflection) => {
-            let mut ret = "[".to_string();
-            let len = vec_reflection.len();
-            let mut first = true;
-            for i in 0..len {
-                if !first {
-                    ret.push(',');
+            if vec_reflection.skip {
+                "[]".to_string()
+            } else {
+                let mut ret = "[".to_string();
+                let len = vec_reflection.len();
+                let mut first = true;
+                for i in 0..len {
+                    if !first {
+                        ret.push(',');
+                    }
+                    ret.push_str(&value_to_json(&vec_reflection.get_ref(i)));
+                    first = false;
                 }
-                ret.push_str(&value_to_json(&vec_reflection.get_ref(i)));
-                first = false;
+                ret.push(']');
+                ret
             }
-            ret.push(']');
-            ret
         }
         ValueReflection::HashMap(hmreflection) => {
-            let vec_reflection = &mut hmreflection.get_elements_ref();
-            let mut ret = "[".to_string();
-            let mut first = true;
-            for elem in vec_reflection {
-                if !first {
-                    ret.push(',');
+            if hmreflection.skip {
+                "[]".to_string()
+            } else {
+                let vec_reflection = &mut hmreflection.get_elements_ref();
+                let mut ret = "[".to_string();
+                let mut first = true;
+                for elem in vec_reflection {
+                    if !first {
+                        ret.push(',');
+                    }
+                    ret.push_str(&elem.to_json_string());
+                    first = false;
                 }
-                ret.push_str(&elem.to_json_string());
-                first = false;
+                ret.push(']');
+                ret
             }
-            ret.push(']');
-            ret
         }
     }
 }

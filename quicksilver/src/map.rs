@@ -148,6 +148,7 @@ pub struct HMReflection<'a> {
     pub value: &'a Type,
     pub ptr: *mut u8,
     pub vtable: &'a HMVtable,
+    pub skip: bool,
     pub _phantom: PhantomData<&'a u8>,
 }
 
@@ -159,4 +160,41 @@ impl HMReflection<'_> {
     pub fn get_elements_ref(&self) -> Vec<StructReflection<'_>> {
         unsafe { (self.vtable.get_elements_ref)(self.ptr) }
     }
+}
+
+pub struct EmptyHMVtableCreator<Key, Value> {
+    _phantom: PhantomData<(Key, Value)>,
+}
+
+impl<Key, Value> EmptyHMVtableCreator<Key, Value>
+where
+    Key: Eq,
+    Key: Hash,
+{
+    pub const VTABLE: HMVtable = HMVtable {
+        new_at: Self::new_at,
+        fill_with: empty_fill_with,
+        get_elements: empty_get_elements,
+        get_elements_ref: empty_get_elements_ref,
+    };
+
+    unsafe fn new_at(ptr: *mut u8) {
+        let v: HashMap<Key, Value> = HashMap::new();
+        let ptr = ptr as *mut HashMap<Key, Value>;
+        unsafe {
+            ptr.write(v);
+        }
+    }
+}
+
+unsafe fn empty_fill_with(_ptr: *mut u8, _key_ptr: *mut u8, _value_ptr: *mut u8) {
+    panic!("Not supported on skipped fields");
+}
+
+unsafe fn empty_get_elements(_ptr: *mut u8) -> Vec<StructReflection<'static>> {
+    panic!("Not supported on skipped fields");
+}
+
+unsafe fn empty_get_elements_ref(_ptr: *const u8) -> Vec<StructReflection<'static>> {
+    panic!("Not supported on skipped fields");
 }
