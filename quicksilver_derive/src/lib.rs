@@ -188,7 +188,6 @@ fn parse_type(buffer: &[TokenTree], ty: &str, skip: bool) -> Result<String, Macr
                 "Quicksilver can't skip this field."
             )
         }
-        assert!(!skip, "Can't skip this field.");
         let mut result = String::new();
         result.push_str(ty);
         result.push_str("::MIRROR");
