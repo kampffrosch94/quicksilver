@@ -1,7 +1,7 @@
 use crate::{
     Quicksilver, Struct, Type,
     map::HMReflection,
-    reflections::{FieldReflection, StructReflection, ValueReflection},
+    reflections::{CEnumReflection, FieldReflection, StructReflection, ValueReflection},
     vec::VecReflection,
 };
 
@@ -72,6 +72,14 @@ pub unsafe fn reflect_value_ref(ptr: *const u8, ty: &Type) -> ValueReflection {
             ValueReflection::String(value.into())
         }
         Type::Struct(s) => ValueReflection::Struct(Box::new(unsafe { reflect_struct_ref(ptr, s) })),
+        Type::CEnum(cenum) => {
+            let value = unsafe { &*(ptr as *const i32) };
+            ValueReflection::CEnum(Box::new(CEnumReflection {
+                name: cenum.name,
+                val: value.into(),
+                variants: cenum.variants,
+            }))
+        }
         Type::Vec(v) => ValueReflection::Vec(Box::new(VecReflection {
             element: v.element,
             ptr: ptr as *mut u8,

@@ -17,6 +17,7 @@ pub enum ValueReflection<'a> {
     Bool(RefOrMut<'a, bool>),
     String(RefOrMut<'a, String>),
     Struct(Box<StructReflection<'a>>),
+    CEnum(Box<CEnumReflection<'a>>),
     Vec(Box<VecReflection<'a>>),
     HashMap(Box<HMReflection<'a>>),
 }
@@ -33,6 +34,14 @@ pub struct StructReflection<'a> {
     pub fields: Vec<FieldReflection<'a>>,
 }
 
+#[repr(C)]
+pub struct CEnumReflection<'a> {
+    pub name: &'a str,
+    pub val: RefOrMut<'a, i32>,
+    pub variants: &'a [(i32, &'a str)],
+}
+
+// TODO return value reflection instead
 pub fn reflect<T: Quicksilver>(val: &mut T) -> StructReflection<'_> {
     match T::MIRROR {
         Type::Struct(s) => unsafe { reflect_struct(val as *mut T as *mut u8, s) },
@@ -62,6 +71,14 @@ pub unsafe fn reflect_value(ptr: *mut u8, ty: &Type) -> ValueReflection {
         Type::I32 => {
             let value = unsafe { &mut *(ptr as *mut i32) };
             ValueReflection::I32(value.into())
+        }
+        Type::CEnum(cenum) => {
+            let value = unsafe { &*(ptr as *const i32) };
+            ValueReflection::CEnum(Box::new(CEnumReflection {
+                name: cenum.name,
+                val: value.into(),
+                variants: cenum.variants,
+            }))
         }
         Type::U32 => {
             let value = unsafe { &mut *(ptr as *mut u32) };

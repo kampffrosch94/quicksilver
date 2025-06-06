@@ -23,6 +23,7 @@ impl<'a> StructReflection<'a> {
 pub fn value_to_json(vr: &ValueReflection) -> String {
     match vr {
         ValueReflection::I32(val) => format!("{}", **val),
+        ValueReflection::CEnum(cenum_reflection) => format!("{}", *cenum_reflection.val),
         ValueReflection::U32(val) => format!("{}", **val),
         ValueReflection::F32(val) => format!("{}", **val),
         ValueReflection::I64(val) => format!("{}", **val),
@@ -107,6 +108,12 @@ unsafe fn deserialize_field(walker: &mut JsonWalker, base: *mut u8, ty: &Type) {
         Type::I32 => unsafe {
             let ptr = base as *mut i32;
             let val = walker.consume_int();
+            ptr.write(val);
+        },
+        Type::CEnum(cenum) => unsafe {
+            let ptr = base as *mut i32;
+            let val: i32 = walker.consume_int();
+            assert!(cenum.variants.iter().any(|it| it.0 == val));
             ptr.write(val);
         },
         Type::U32 => unsafe {

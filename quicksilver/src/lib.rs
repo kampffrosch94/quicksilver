@@ -28,6 +28,7 @@ pub enum Type {
     Vec(VecType),
     HashMap(HMType),
     Struct(&'static Struct),
+    CEnum(&'static CEnum),
 }
 
 impl Type {
@@ -46,6 +47,7 @@ impl Type {
             Type::Vec(_) => Layout::new::<Vec<i32>>(),
             Type::HashMap(_) => Layout::new::<HashMap<i32, i32>>(),
             Type::Struct(s) => unsafe { Layout::from_size_align_unchecked(s.size, s.align) },
+            Type::CEnum(e) => unsafe { Layout::from_size_align_unchecked(e.size, e.align) },
         }
     }
 }
@@ -78,6 +80,14 @@ pub struct Struct {
     pub align: usize,
     pub name: &'static str,
     pub fields: &'static [Field],
+}
+
+#[derive(Debug)]
+pub struct CEnum {
+    pub size: usize,
+    pub align: usize,
+    pub name: &'static str,
+    pub variants: &'static [(i32, &'static str)],
 }
 
 pub trait Quicksilver {
