@@ -253,16 +253,28 @@ impl Quicksilver for {name} {{
     )
     .unwrap();
 
-    for (i, variant) in input
-        .into_iter()
-        .filter(|it| matches!(it, TT::Ident(_)))
-        .enumerate()
-    {
-        let TT::Ident(ident) = variant else {
-            unreachable!()
-        };
-        let name = ident.to_string();
-        write!(result, r#"({i}, "{name}"),"#).unwrap()
+    let mut i = 0;
+    let mut name = String::new();
+
+    for tt in input.into_iter() {
+        match tt {
+            TT::Ident(ident) => {
+                name = ident.to_string();
+            }
+            TT::Literal(lit) => {
+                i = lit.to_string().parse().unwrap_or(i);
+            }
+            TT::Punct(comma) if comma.as_char() == ',' => {
+                write!(result, r#"({i}, "{name}"),"#).unwrap();
+                name = String::new();
+                i += 1;
+            }
+            _ => continue,
+        }
+    }
+
+    if !name.is_empty() {
+        write!(result, r#"({i}, "{name}"),"#).unwrap();
     }
 
     write!(
