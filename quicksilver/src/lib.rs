@@ -84,17 +84,11 @@ pub trait Reflection {
     const MIRROR: Type;
 }
 
-/// Marks types that can be reflected
-/// implement `Reflection` for making them reflectable
-pub trait Reflectable {
-    const TYPE: Type;
-}
-
 // macro used to implement Reflectable for primitive types
 macro_rules! impl_reflectable {
     ($ty:ty, $e:expr) => {
-        impl Reflectable for $ty {
-            const TYPE: Type = $e;
+        impl Reflection for $ty {
+            const MIRROR: Type = $e;
         }
     };
 }
@@ -110,33 +104,26 @@ impl_reflectable!(usize, Type::USize);
 impl_reflectable!(isize, Type::ISize);
 impl_reflectable!(String, Type::String);
 
-impl<T> Reflectable for T
+impl<T> Reflection for Vec<T>
 where
     T: Reflection,
 {
-    const TYPE: Type = T::MIRROR;
-}
-
-impl<T> Reflectable for Vec<T>
-where
-    T: Reflectable,
-{
-    const TYPE: Type = Type::Vec(VecType {
-        element: &T::TYPE,
+    const MIRROR: Type = Type::Vec(VecType {
+        element: &T::MIRROR,
         vtable: VecVtableCreator::<T>::VTABLE,
         skip: false,
     });
 }
 
-impl<Key, Value> Reflectable for HashMap<Key, Value>
+impl<Key, Value> Reflection for HashMap<Key, Value>
 where
     Key: Eq + Hash,
-    Key: Reflectable,
-    Value: Reflectable,
+    Key: Reflection,
+    Value: Reflection,
 {
-    const TYPE: Type = Type::HashMap(HMType {
-        key: &Key::TYPE,
-        value: &Value::TYPE,
+    const MIRROR: Type = Type::HashMap(HMType {
+        key: &Key::MIRROR,
+        value: &Value::MIRROR,
         vtable: HMVtableCreator::<Key, Value>::VTABLE,
         skip: false,
     });

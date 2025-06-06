@@ -4,7 +4,7 @@ use std::hash::Hash;
 
 use crate::reflections::{FieldReflection, StructReflection, reflect_value};
 use crate::reflections_ref::reflect_value_ref;
-use crate::{Reflectable, Type};
+use crate::{Reflection, Type};
 
 #[derive(Debug)]
 pub struct HMVtable {
@@ -75,8 +75,8 @@ impl<Key, Value> HMVtableCreator<Key, Value>
 where
     Key: Eq,
     Key: Hash,
-    Key: Reflectable,
-    Value: Reflectable,
+    Key: Reflection,
+    Value: Reflection,
 {
     pub const VTABLE: HMVtable = HMVtable {
         new_at: Self::new_at,
@@ -114,8 +114,8 @@ where
                 let el = HMEntryView {
                     key: key as *const Key as *mut u8,
                     value: value as *mut Value as *mut u8,
-                    key_t: &Key::TYPE,
-                    value_t: &Value::TYPE,
+                    key_t: &Key::MIRROR,
+                    value_t: &Value::MIRROR,
                 };
                 result.push(el.reflect());
             }
@@ -132,8 +132,8 @@ where
                 let el = HMEntryView {
                     key: key as *const Key as *mut u8,
                     value: value as *const Value as *mut u8,
-                    key_t: &Key::TYPE,
-                    value_t: &Value::TYPE,
+                    key_t: &Key::MIRROR,
+                    value_t: &Value::MIRROR,
                 };
                 result.push(el.reflect_ref());
             }

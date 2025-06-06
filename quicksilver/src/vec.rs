@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use crate::{
-    Reflectable, Type,
+    Reflection, Type,
     reflections::{ValueReflection, reflect_value},
     reflections_ref::reflect_value_ref,
 };
@@ -31,7 +31,7 @@ pub struct VecVtableCreator<T> {
 
 impl<T> VecVtableCreator<T>
 where
-    T: Reflectable,
+    T: Reflection,
 {
     pub const VTABLE: VecVtable = VecVtable {
         new_at: Self::new_at,

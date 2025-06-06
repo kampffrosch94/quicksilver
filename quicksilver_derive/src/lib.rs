@@ -191,7 +191,7 @@ fn parse_type(buffer: &[TokenTree], ty: &str, skip: bool) -> Result<String, Macr
         assert!(!skip, "Can't skip this field.");
         let mut result = String::new();
         result.push_str(ty);
-        result.push_str("::TYPE");
+        result.push_str("::MIRROR");
         result
     } else {
         let mut result = String::new();
@@ -203,7 +203,7 @@ fn parse_type(buffer: &[TokenTree], ty: &str, skip: bool) -> Result<String, Macr
         if skip {
             result.push_str("::EMPTY");
         } else {
-            result.push_str("::TYPE");
+            result.push_str("::MIRROR");
         }
         result
     })
