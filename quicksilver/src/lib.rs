@@ -80,14 +80,14 @@ pub struct Struct {
     pub fields: &'static [Field],
 }
 
-pub trait Reflection {
+pub trait Quicksilver {
     const MIRROR: Type;
 }
 
 // macro used to implement Reflectable for primitive types
 macro_rules! impl_reflectable {
     ($ty:ty, $e:expr) => {
-        impl Reflection for $ty {
+        impl Quicksilver for $ty {
             const MIRROR: Type = $e;
         }
     };
@@ -104,9 +104,9 @@ impl_reflectable!(usize, Type::USize);
 impl_reflectable!(isize, Type::ISize);
 impl_reflectable!(String, Type::String);
 
-impl<T> Reflection for Vec<T>
+impl<T> Quicksilver for Vec<T>
 where
-    T: Reflection,
+    T: Quicksilver,
 {
     const MIRROR: Type = Type::Vec(VecType {
         element: &T::MIRROR,
@@ -115,11 +115,11 @@ where
     });
 }
 
-impl<Key, Value> Reflection for HashMap<Key, Value>
+impl<Key, Value> Quicksilver for HashMap<Key, Value>
 where
     Key: Eq + Hash,
-    Key: Reflection,
-    Value: Reflection,
+    Key: Quicksilver,
+    Value: Quicksilver,
 {
     const MIRROR: Type = Type::HashMap(HMType {
         key: &Key::MIRROR,

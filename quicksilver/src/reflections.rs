@@ -1,4 +1,4 @@
-use crate::{Reflection, Struct, Type, map::HMReflection, vec::VecReflection};
+use crate::{Quicksilver, Struct, Type, map::HMReflection, vec::VecReflection};
 use std::fmt::Debug;
 
 use std::ops::Deref;
@@ -33,7 +33,7 @@ pub struct StructReflection<'a> {
     pub fields: Vec<FieldReflection<'a>>,
 }
 
-pub fn reflect<T: Reflection>(val: &mut T) -> StructReflection<'_> {
+pub fn reflect<T: Quicksilver>(val: &mut T) -> StructReflection<'_> {
     match T::MIRROR {
         Type::Struct(s) => unsafe { reflect_struct(val as *mut T as *mut u8, s) },
         _ => panic!("Unsupported type"),

@@ -4,7 +4,7 @@ mod parser;
 use parser::{JsonWalker, peek};
 
 use crate::{
-    Reflection, Struct, Type,
+    Quicksilver, Struct, Type,
     reflections::{StructReflection, ValueReflection},
 };
 
@@ -75,7 +75,7 @@ pub fn value_to_json(vr: &ValueReflection) -> String {
     }
 }
 
-pub fn from_json<T: Reflection>(s: &str) -> T {
+pub fn from_json<T: Quicksilver>(s: &str) -> T {
     let mut result: MaybeUninit<T> = MaybeUninit::uninit();
     let ptr = result.as_mut_ptr();
     let mut walker = JsonWalker {

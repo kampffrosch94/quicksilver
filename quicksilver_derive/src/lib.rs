@@ -55,7 +55,7 @@ fn generate_impl(name: String, fields: Vec<Field>) -> Result<TokenStream, MacroE
     write!(
         result,
         r#"
-impl Reflection for {name} {{
+impl Quicksilver for {name} {{
     const MIRROR: Type = Type::Struct(&Struct {{
         name: "{name}",
         size: size_of::<Self>(),

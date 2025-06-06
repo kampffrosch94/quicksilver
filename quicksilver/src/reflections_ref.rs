@@ -1,11 +1,11 @@
 use crate::{
-    Reflection, Struct, Type,
+    Quicksilver, Struct, Type,
     map::HMReflection,
     reflections::{FieldReflection, StructReflection, ValueReflection},
     vec::VecReflection,
 };
 
-pub fn reflect_ref<T: Reflection>(val: &T) -> StructReflection<'_> {
+pub fn reflect_ref<T: Quicksilver>(val: &T) -> StructReflection<'_> {
     match T::MIRROR {
         Type::Struct(s) => unsafe { reflect_struct_ref(val as *const T as *const u8, s) },
         _ => panic!("Unsupported type"),

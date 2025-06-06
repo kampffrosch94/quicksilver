@@ -4,7 +4,7 @@ use std::hash::Hash;
 
 use crate::reflections::{FieldReflection, StructReflection, reflect_value};
 use crate::reflections_ref::reflect_value_ref;
-use crate::{Reflection, Type};
+use crate::{Quicksilver, Type};
 
 #[derive(Debug)]
 pub struct HMVtable {
@@ -75,8 +75,8 @@ impl<Key, Value> HMVtableCreator<Key, Value>
 where
     Key: Eq,
     Key: Hash,
-    Key: Reflection,
-    Value: Reflection,
+    Key: Quicksilver,
+    Value: Quicksilver,
 {
     pub const VTABLE: HMVtable = HMVtable {
         new_at: Self::new_at,
