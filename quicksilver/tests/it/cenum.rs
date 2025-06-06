@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use quicksilver::reflections_ref::reflect_ref;
 use quicksilver::*;
 use quicksilver::{Quicksilver, json::from_json};
@@ -7,9 +5,12 @@ use quicksilver::{Quicksilver, json::from_json};
 #[repr(C)]
 #[derive(Debug, Quicksilver, PartialEq)]
 enum Number {
+    #[allow(unused)]
     Zero,
+    #[allow(unused)]
     One,
     Two,
+    #[allow(unused)]
     Four,
 }
 

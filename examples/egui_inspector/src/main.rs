@@ -25,8 +25,17 @@ fn main() -> eframe::Result {
 }
 
 #[derive(Debug, Quicksilver)]
+#[repr(C)]
+enum Occupation {
+    None,
+    DemonKing = 5,
+    Layperson,
+}
+
+#[derive(Debug, Quicksilver)]
 struct Person {
     name: String,
+    job: Occupation,
     alive: bool,
     age: u32,
     houses: Vec<House>,
@@ -69,6 +78,7 @@ impl Default for Person {
             houses,
             pos: Pos { x: 2, y: 3 },
             house_map,
+            job: Occupation::None,
         }
     }
 }
@@ -206,6 +216,16 @@ fn draw_value(ui: &mut egui::Ui, value: &mut ValueReflection) {
                     }
                 });
         }
+        ValueReflection::CEnum(e) => {
+            let name = e.variants.iter().find(|it| it.0 == *e.val).unwrap().1;
+            egui::ComboBox::from_id_salt(next_id())
+                .selected_text(format!("{name}"))
+                .show_ui(ui, |ui| {
+                    for (i, name) in e.variants {
+                        ui.selectable_value(&mut *e.val, *i, *name);
+                    }
+                });
+        }
     }
 }
 
@@ -268,6 +288,10 @@ fn draw_value_ref(ui: &mut egui::Ui, value: &ValueReflection) {
                         ui.end_row();
                     }
                 });
+        }
+        ValueReflection::CEnum(e) => {
+            let name = e.variants.iter().find(|it| it.0 == *e.val).unwrap().1;
+            ui.label(&format!("{}", name));
         }
     }
 }

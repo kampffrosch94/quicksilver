@@ -73,7 +73,7 @@ pub unsafe fn reflect_value(ptr: *mut u8, ty: &Type) -> ValueReflection {
             ValueReflection::I32(value.into())
         }
         Type::CEnum(cenum) => {
-            let value = unsafe { &*(ptr as *const i32) };
+            let value = unsafe { &mut *(ptr as *mut i32) };
             ValueReflection::CEnum(Box::new(CEnumReflection {
                 name: cenum.name,
                 val: value.into(),
@@ -157,6 +157,7 @@ impl<T> Deref for RefOrMut<'_, T> {
 }
 
 impl<T> DerefMut for RefOrMut<'_, T> {
+    #[track_caller]
     fn deref_mut(&mut self) -> &mut <Self as Deref>::Target {
         match self {
             RefOrMut::Ref(_) => panic!("Immutable reference can't be used as mutable."),
