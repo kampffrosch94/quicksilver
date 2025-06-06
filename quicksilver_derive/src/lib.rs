@@ -26,9 +26,16 @@ pub fn derive_quicksilver(input: TokenStream) -> TokenStream {
 
 fn inner(item: TokenStream) -> Result<TokenStream, MacroError> {
     let mut iter = item.into_iter();
-    match (iter.next(), iter.next(), iter.next(), iter.next()) {
+    match (
+        iter.next(),
+        iter.next(),
+        iter.next(),
+        iter.next(),
+        iter.next(),
+        iter.next(),
+    ) {
         // regular old struct
-        (Some(TT::Ident(s)), Some(TT::Ident(name)), Some(TT::Group(fields)), None) => {
+        (Some(TT::Ident(s)), Some(TT::Ident(name)), Some(TT::Group(fields)), None, None, None) => {
             assert_eq!("struct", s.to_string());
             let name = name.to_string();
             let fields = parse_fields(fields.stream())?;
@@ -40,12 +47,28 @@ fn inner(item: TokenStream) -> Result<TokenStream, MacroError> {
             Some(TT::Ident(name)),
             Some(TT::Group(fields)),
             Some(TT::Punct(_)),
+            None,
+            None,
         ) => {
             assert_eq!("struct", s.to_string());
             let name = name.to_string();
             let fields = parse_fields(fields.stream())?;
             generate_impl(name, fields)
         }
+        // c style enum
+        (
+            Some(TT::Punct(_)),
+            Some(TT::Group(_)),
+            Some(TT::Ident(e)),
+            Some(TT::Ident(name)),
+            Some(TT::Group(variants)),
+            None,
+        ) => {
+            assert_eq!("enum", e.to_string());
+            let name = name.to_string();
+            generate_enum_impl(name, variants.stream())
+        }
+
         _ => panic!("Unsupported struct shape."),
     }
 }
@@ -214,4 +237,42 @@ fn chunked<I>(a: impl IntoIterator<Item = I>, chunk_size: usize) -> impl Iterato
         Some(a.by_ref().take(chunk_size).collect())
             .filter(|chunk: &Vec<_>| chunk.len() == chunk_size)
     })
+}
+
+fn generate_enum_impl(name: String, input: TokenStream) -> Result<TokenStream, MacroError> {
+    let result = &mut String::new();
+    write!(
+        result,
+        r#"
+impl Quicksilver for {name} {{
+    const MIRROR: Type = Type::CEnum(&CEnum {{
+        name: "{name}",
+        size: size_of::<Self>(),
+        align: align_of::<Self>(),
+        variants: &["#
+    )
+    .unwrap();
+
+    for (i, variant) in input
+        .into_iter()
+        .filter(|it| matches!(it, TT::Ident(_)))
+        .enumerate()
+    {
+        let TT::Ident(ident) = variant else {
+            unreachable!()
+        };
+        let name = ident.to_string();
+        write!(result, r#"({i}, "{name}"),"#).unwrap()
+    }
+
+    write!(
+        result,
+        r#"
+        ],
+    }});
+}}
+"#
+    )
+    .unwrap();
+    Ok(result.parse().unwrap())
 }
