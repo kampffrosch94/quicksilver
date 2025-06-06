@@ -9,7 +9,7 @@ use crate::{
 };
 
 impl<'a> StructReflection<'a> {
-    pub fn to_json_string(&self) -> String {
+    pub fn struct_to_json(&self) -> String {
         let mut json_parts = Vec::new();
         for field in &self.fields {
             let field_name = format!("\"{}\"", field.name);
@@ -35,7 +35,7 @@ pub fn value_to_json(vr: &ValueReflection) -> String {
             let escaped_val = val.replace(r"\", r"\\").replace(r#"""#, r#"\""#);
             format!("\"{}\"", escaped_val)
         }
-        ValueReflection::Struct(s_ref) => s_ref.to_json_string(),
+        ValueReflection::Struct(s_ref) => s_ref.struct_to_json(),
         ValueReflection::Vec(vec_reflection) => {
             if vec_reflection.skip {
                 "[]".to_string()
@@ -65,7 +65,7 @@ pub fn value_to_json(vr: &ValueReflection) -> String {
                     if !first {
                         ret.push(',');
                     }
-                    ret.push_str(&elem.to_json_string());
+                    ret.push_str(&elem.struct_to_json());
                     first = false;
                 }
                 ret.push(']');
@@ -76,7 +76,6 @@ pub fn value_to_json(vr: &ValueReflection) -> String {
 }
 
 pub fn from_json<T: Reflection>(s: &str) -> T {
-    let mirror = T::MIRROR;
     let mut result: MaybeUninit<T> = MaybeUninit::uninit();
     let ptr = result.as_mut_ptr();
     let mut walker = JsonWalker {
@@ -84,7 +83,10 @@ pub fn from_json<T: Reflection>(s: &str) -> T {
         buffer: String::new(),
     };
     unsafe {
-        deserialize_struct(&mut walker, ptr as *mut u8, mirror);
+        match T::MIRROR {
+            Type::Struct(s) => deserialize_struct(&mut walker, ptr as *mut u8, s),
+            _ => panic!("Unsupported type"),
+        }
         result.assume_init()
     }
 }
@@ -237,7 +239,7 @@ mod test {
         };
 
         let reflected_data = reflect_ref(&my_data);
-        let json_string = reflected_data.to_json_string();
+        let json_string = reflected_data.struct_to_json();
 
         let expected_json = r#"{"id":789,"name":"Another \"Test\" String with \\backslashes\\","value":123.45,"location":{"x":-5,"y":30},"is_active":1}"#;
 

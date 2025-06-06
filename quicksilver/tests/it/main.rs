@@ -38,7 +38,7 @@ mod test {
                 Point { x: 3, y: 6 },
             ],
         };
-        let s = reflect_ref(&val).to_json_string();
+        let s = reflect_ref(&val).struct_to_json();
         let val2 = from_json::<VecHolder>(&s);
         dbg!(&val2);
         assert_eq!(val, val2);
@@ -62,7 +62,7 @@ mod test {
         );
         val.map
             .insert(Point { x: 3, y: 2 }, "Point of deep regret".to_string());
-        let s = reflect_ref(&val).to_json_string();
+        let s = reflect_ref(&val).struct_to_json();
         println!("{}", &s);
         let val2 = from_json::<HMHolder>(&s);
         dbg!(&val2);
@@ -92,7 +92,7 @@ mod test {
             Point { x: 2, y: 2 },
             Box::new("Point of its really too late now".to_string()),
         );
-        let s = reflect_ref(&val).to_json_string();
+        let s = reflect_ref(&val).struct_to_json();
         println!("{}", &s);
         let val2 = from_json::<HMHolder2>(&s);
         dbg!(&val2);

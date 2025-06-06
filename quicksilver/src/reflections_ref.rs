@@ -6,7 +6,10 @@ use crate::{
 };
 
 pub fn reflect_ref<T: Reflection>(val: &T) -> StructReflection<'_> {
-    unsafe { reflect_struct_ref(val as *const T as *const u8, T::MIRROR) }
+    match T::MIRROR {
+        Type::Struct(s) => unsafe { reflect_struct_ref(val as *const T as *const u8, s) },
+        _ => panic!("Unsupported type"),
+    }
 }
 
 pub unsafe fn reflect_struct_ref(base: *const u8, mirror: &Struct) -> StructReflection<'_> {

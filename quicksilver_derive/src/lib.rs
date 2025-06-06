@@ -56,7 +56,7 @@ fn generate_impl(name: String, fields: Vec<Field>) -> Result<TokenStream, MacroE
         result,
         r#"
 impl Reflection for {name} {{
-    const MIRROR: &'static Struct = &Struct {{
+    const MIRROR: Type = Type::Struct(&Struct {{
         name: "{name}",
         size: size_of::<Self>(),
         align: align_of::<Self>(),
@@ -76,7 +76,7 @@ impl Reflection for {name} {{
         result,
         r#"
         ],
-    }};
+    }});
 }}
 "#
     )

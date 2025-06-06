@@ -81,7 +81,7 @@ pub struct Struct {
 }
 
 pub trait Reflection {
-    const MIRROR: &'static Struct;
+    const MIRROR: Type;
 }
 
 /// Marks types that can be reflected
@@ -114,7 +114,7 @@ impl<T> Reflectable for T
 where
     T: Reflection,
 {
-    const TYPE: Type = Type::Struct(T::MIRROR);
+    const TYPE: Type = T::MIRROR;
 }
 
 impl<T> Reflectable for Vec<T>
