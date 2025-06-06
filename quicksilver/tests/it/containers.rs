@@ -21,86 +21,79 @@ struct VecHolder {
 #[derive(Debug, PartialEq, Quicksilver)]
 struct TuplePoint2f(f32, f32);
 
-#[cfg(test)]
-mod test {
-    use quicksilver::reflections_ref::reflect_ref;
-
-    use super::*;
-
-    #[test]
-    fn vec_roundtrip() {
-        let val = VecHolder {
-            name: "Kampffrosch".to_string(),
-            age: 30,
-            alive: true,
-            values: vec![
-                Point { x: 1, y: 2 },
-                Point { x: 2, y: 4 },
-                Point { x: 3, y: 6 },
-            ],
-        };
-        let s = reflect_ref(&val).struct_to_json();
-        let val2 = from_json::<VecHolder>(&s);
-        dbg!(&val2);
-        assert_eq!(val, val2);
-    }
-
-    #[derive(Debug, PartialEq, Quicksilver)]
-    struct HMHolder {
-        map: HashMap<Point, String>,
-    }
-
-    #[test]
-    fn hm_roundtrip() {
-        let mut val = HMHolder {
-            map: HashMap::new(),
-        };
-        val.map
-            .insert(Point { x: 1, y: 2 }, "Point of no return".to_string());
-        val.map.insert(
-            Point { x: 2, y: 2 },
-            "Point of its really too late now".to_string(),
-        );
-        val.map
-            .insert(Point { x: 3, y: 2 }, "Point of deep regret".to_string());
-        let s = reflect_ref(&val).struct_to_json();
-        println!("{}", &s);
-        let val2 = from_json::<HMHolder>(&s);
-        dbg!(&val2);
-        assert_eq!(val, val2);
-    }
-
-    use quicksilver::empty::EmptyContainer;
-
-    #[derive(Debug, PartialEq, Quicksilver)]
-    struct HMHolder2 {
-        name: String,
-        #[quicksilver(skip)]
-        map: HashMap<Point, Box<String>>,
-    }
-
-    #[test]
-    fn hm_roundtrip_skipped() {
-        let mut val = HMHolder2 {
-            name: "blab".to_string(),
-            map: HashMap::new(),
-        };
-        val.map.insert(
+#[test]
+fn vec_roundtrip() {
+    let val = VecHolder {
+        name: "Kampffrosch".to_string(),
+        age: 30,
+        alive: true,
+        values: vec![
             Point { x: 1, y: 2 },
-            Box::new("Point of no return".to_string()),
-        );
-        val.map.insert(
-            Point { x: 2, y: 2 },
-            Box::new("Point of its really too late now".to_string()),
-        );
-        let s = reflect_ref(&val).struct_to_json();
-        println!("{}", &s);
-        let val2 = from_json::<HMHolder2>(&s);
-        dbg!(&val2);
-        assert_ne!(val, val2);
-        val.map.clear();
-        assert_eq!(val, val2);
-    }
+            Point { x: 2, y: 4 },
+            Point { x: 3, y: 6 },
+        ],
+    };
+    let s = reflect_ref(&val).struct_to_json();
+    let val2 = from_json::<VecHolder>(&s);
+    dbg!(&val2);
+    assert_eq!(val, val2);
+}
+
+#[derive(Debug, PartialEq, Quicksilver)]
+struct HMHolder {
+    map: HashMap<Point, String>,
+}
+
+#[test]
+fn hm_roundtrip() {
+    let mut val = HMHolder {
+        map: HashMap::new(),
+    };
+    val.map
+        .insert(Point { x: 1, y: 2 }, "Point of no return".to_string());
+    val.map.insert(
+        Point { x: 2, y: 2 },
+        "Point of its really too late now".to_string(),
+    );
+    val.map
+        .insert(Point { x: 3, y: 2 }, "Point of deep regret".to_string());
+    let s = reflect_ref(&val).struct_to_json();
+    println!("{}", &s);
+    let val2 = from_json::<HMHolder>(&s);
+    dbg!(&val2);
+    assert_eq!(val, val2);
+}
+
+use quicksilver::empty::EmptyContainer;
+
+#[derive(Debug, PartialEq, Quicksilver)]
+struct HMHolder2 {
+    name: String,
+    #[quicksilver(skip)]
+    map: HashMap<Point, Box<String>>,
+}
+
+#[test]
+fn hm_roundtrip_skipped() {
+    let mut val = HMHolder2 {
+        name: "blab".to_string(),
+        map: HashMap::new(),
+    };
+    val.map.insert(
+        Point { x: 1, y: 2 },
+        Box::new("Point of no return".to_string()),
+    );
+    val.map.insert(
+        Point { x: 2, y: 2 },
+        Box::new("Point of its really too late now".to_string()),
+    );
+    let s = reflect_ref(&val).struct_to_json();
+    println!("{}", &s);
+    let val2 = from_json::<HMHolder2>(&s);
+    dbg!(&val2);
+    assert_ne!(val, val2);
+    val.map.clear();
+    assert_eq!(val, val2);
 }
 
 #[derive(Debug, PartialEq, Quicksilver)]
