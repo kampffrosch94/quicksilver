@@ -25,9 +25,21 @@ pub fn derive_quicksilver(input: TokenStream) -> TokenStream {
 }
 
 fn inner(item: TokenStream) -> Result<TokenStream, MacroError> {
-    let mut iter = item.into_iter();
+    let mut iter = item.into_iter().peekable();
+    if matches!(iter.peek(), Some(TT::Ident(ident))
+                if ["pub", "pub(crate)"].contains(&ident.to_string().as_str()))
+    {
+        let _ = iter.next();
+    }
+
+    while matches!(iter.peek(), Some(TT::Punct(hashtag))
+                if hashtag.as_char() == '#')
+    {
+        let _ = iter.next();
+        let _ = iter.next();
+    }
+
     match (
-        iter.next(),
         iter.next(),
         iter.next(),
         iter.next(),
@@ -35,11 +47,19 @@ fn inner(item: TokenStream) -> Result<TokenStream, MacroError> {
         iter.next(),
     ) {
         // regular old struct
-        (Some(TT::Ident(s)), Some(TT::Ident(name)), Some(TT::Group(fields)), None, None, None) => {
-            assert_eq!("struct", s.to_string());
-            let name = name.to_string();
-            let fields = parse_fields(fields.stream())?;
-            generate_impl(name, fields)
+        (Some(TT::Ident(s)), Some(TT::Ident(name)), Some(TT::Group(fields)), None, None) => {
+            match s.to_string().as_str() {
+                "struct" => {
+                    let name = name.to_string();
+                    let fields = parse_fields(fields.stream())?;
+                    generate_impl(name, fields)
+                }
+                "enum" => {
+                    let name = name.to_string();
+                    generate_enum_impl(name, fields.stream())
+                }
+                other @ _ => panic!("Unknown keyword {other:?}"),
+            }
         }
         // tuple struct
         (
@@ -48,28 +68,16 @@ fn inner(item: TokenStream) -> Result<TokenStream, MacroError> {
             Some(TT::Group(fields)),
             Some(TT::Punct(_)),
             None,
-            None,
         ) => {
             assert_eq!("struct", s.to_string());
             let name = name.to_string();
             let fields = parse_fields(fields.stream())?;
             generate_impl(name, fields)
         }
-        // c style enum
-        (
-            Some(TT::Punct(_)),
-            Some(TT::Group(_)),
-            Some(TT::Ident(e)),
-            Some(TT::Ident(name)),
-            Some(TT::Group(variants)),
-            None,
-        ) => {
-            assert_eq!("enum", e.to_string());
-            let name = name.to_string();
-            generate_enum_impl(name, variants.stream())
+        other @ _ => {
+            dbg!(other);
+            panic!("Unsupported struct shape.")
         }
-
-        _ => panic!("Unsupported struct shape."),
     }
 }
 
@@ -144,7 +152,12 @@ fn parse_fields(input: TokenStream) -> Result<Vec<Field>, MacroError> {
             } else if matches!(current, Some(TT::Punct(ref c)) if c.as_char() == '>') {
                 level -= 1;
             }
-            buffer.push(current.unwrap());
+
+            if !matches!(current, Some(TT::Ident(ref ident))
+                if ["pub", "pub(crate)"].contains(&ident.to_string().as_str()))
+            {
+                buffer.push(current.unwrap());
+            }
         }
 
         current = iter.next();

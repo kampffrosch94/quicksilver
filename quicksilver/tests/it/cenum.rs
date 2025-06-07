@@ -3,6 +3,7 @@ use quicksilver::{Quicksilver, json::from_json};
 
 #[repr(C)]
 #[derive(Debug, Quicksilver, PartialEq)]
+#[allow(unused)]
 enum Number {
     #[allow(unused)]
     Zero,
@@ -14,7 +15,8 @@ enum Number {
 }
 
 #[derive(Debug, Quicksilver, PartialEq)]
-struct Container {
+pub struct Container {
+    /// This is an enum
     number: Number,
 }
 
