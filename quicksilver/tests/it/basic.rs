@@ -17,6 +17,12 @@ struct MyData {
     is_active: i32, // Using i32 to demonstrate another integer type
 }
 
+#[derive(Debug, Quicksilver)]
+pub struct Player {
+    pub pulse: f32,
+    pub last_action: i32,
+}
+
 #[test]
 fn test_reflection_my_data() {
     let mut my_data = MyData {

@@ -114,6 +114,7 @@ unsafe fn deserialize_field(walker: &mut JsonWalker, base: *mut u8, ty: &Type) {
             let ptr = base as *mut i32;
             let val: i32 = walker.consume_int();
             assert!(cenum.variants.iter().any(|it| it.0 == val));
+            debug_assert_eq!(cenum.size, size_of::<i32>());
             ptr.write(val);
         },
         Type::U32 => unsafe {
@@ -181,8 +182,10 @@ unsafe fn deserialize_field(walker: &mut JsonWalker, base: *mut u8, ty: &Type) {
                 debug_assert!(len <= cap); // sanity check
                 if len == cap {
                     let extra = 8;
-                    first = (v.vtable.reserve)(base, extra);
-                    cap += extra;
+                    cap = len + extra;
+                    // because we don't set len beyond 0 until we are done
+                    // reserve needs the capacity we want as parameter
+                    first = (v.vtable.reserve)(base, cap);
                 }
 
                 let ptr = first.add(stride * len);

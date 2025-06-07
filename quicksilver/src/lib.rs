@@ -44,8 +44,8 @@ impl Type {
             Type::USize => Layout::new::<usize>(),
             Type::Bool => Layout::new::<bool>(),
             Type::String => Layout::new::<String>(),
-            Type::Vec(_) => Layout::new::<Vec<i32>>(),
-            Type::HashMap(_) => Layout::new::<HashMap<i32, i32>>(),
+            Type::Vec(v) => unsafe { Layout::from_size_align_unchecked(v.size, v.align) },
+            Type::HashMap(hm) => unsafe { Layout::from_size_align_unchecked(hm.size, hm.align) },
             Type::Struct(s) => unsafe { Layout::from_size_align_unchecked(s.size, s.align) },
             Type::CEnum(e) => unsafe { Layout::from_size_align_unchecked(e.size, e.align) },
         }
@@ -57,6 +57,8 @@ pub struct VecType {
     pub element: &'static Type,
     pub vtable: VecVtable,
     pub skip: bool,
+    pub size: usize,
+    pub align: usize,
 }
 
 #[derive(Debug)]
@@ -65,6 +67,8 @@ pub struct HMType {
     pub value: &'static Type,
     pub vtable: HMVtable,
     pub skip: bool,
+    pub size: usize,
+    pub align: usize,
 }
 
 #[derive(Debug)]
@@ -122,6 +126,8 @@ where
         element: &T::MIRROR,
         vtable: VecVtableCreator::<T>::VTABLE,
         skip: false,
+        size: size_of::<Self>(),
+        align: align_of::<Self>(),
     });
 }
 
@@ -136,5 +142,7 @@ where
         value: &Value::MIRROR,
         vtable: HMVtableCreator::<Key, Value>::VTABLE,
         skip: false,
+        size: size_of::<Self>(),
+        align: align_of::<Self>(),
     });
 }

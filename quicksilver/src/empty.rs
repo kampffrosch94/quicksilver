@@ -18,6 +18,8 @@ impl<T> EmptyContainer for Vec<T> {
         element: &EMPTY_STRUCT,
         vtable: EmptyVecVtableCreator::<T>::VTABLE,
         skip: true,
+        size: size_of::<Self>(),
+        align: align_of::<Self>(),
     });
 }
 
@@ -31,5 +33,7 @@ where
         skip: true,
         key: &EMPTY_STRUCT,
         value: &EMPTY_STRUCT,
+        size: size_of::<Self>(),
+        align: align_of::<Self>(),
     });
 }

@@ -26,17 +26,23 @@ pub fn derive_quicksilver(input: TokenStream) -> TokenStream {
 
 fn inner(item: TokenStream) -> Result<TokenStream, MacroError> {
     let mut iter = item.into_iter().peekable();
-    if matches!(iter.peek(), Some(TT::Ident(ident))
-                if ["pub", "pub(crate)"].contains(&ident.to_string().as_str()))
-    {
-        let _ = iter.next();
-    }
 
-    while matches!(iter.peek(), Some(TT::Punct(hashtag))
+    loop {
+        if matches!(iter.peek(), Some(TT::Ident(ident))
+                if ["pub", "pub(crate)"].contains(&ident.to_string().as_str()))
+        {
+            let _ = iter.next();
+            continue;
+        }
+
+        if matches!(iter.peek(), Some(TT::Punct(hashtag))
                 if hashtag.as_char() == '#')
-    {
-        let _ = iter.next();
-        let _ = iter.next();
+        {
+            let _ = iter.next();
+            let _ = iter.next();
+            continue;
+        }
+        break;
     }
 
     match (
