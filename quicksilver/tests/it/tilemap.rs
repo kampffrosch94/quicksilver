@@ -9,6 +9,7 @@ struct Tilemap {
 
 #[derive(Debug, Quicksilver, Clone, Copy, PartialEq)]
 #[repr(C)]
+#[allow(unused)]
 enum Tile {
     Floor,
     Wall,

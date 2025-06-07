@@ -46,7 +46,7 @@ impl JsonWalker<'_> {
             _ => false,
         } {
             buffer.push(c);
-            chars.next();
+            let _ = chars.next();
             c = peek(chars);
         }
         buffer
@@ -63,7 +63,7 @@ impl JsonWalker<'_> {
         buffer.clear();
         let mut c = peek(chars);
         while match c {
-            '0'..'9' | '+' | '-' | '.' => true,
+            '0'..='9' | '+' | '-' | '.' => true,
             _ => false,
         } {
             buffer.push(c);
