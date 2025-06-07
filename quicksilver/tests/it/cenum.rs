@@ -1,5 +1,4 @@
 use quicksilver::reflections_ref::reflect_ref;
-use quicksilver::*;
 use quicksilver::{Quicksilver, json::from_json};
 
 #[repr(C)]

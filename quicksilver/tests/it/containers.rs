@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use quicksilver::reflections_ref::reflect_ref;
-use quicksilver::*;
 use quicksilver::{Quicksilver, json::from_json};
 
 #[derive(Debug, PartialEq, Quicksilver, Hash, Eq)]

@@ -78,10 +78,10 @@ fn generate_impl(name: String, fields: Vec<Field>) -> Result<TokenStream, MacroE
     write!(
         result,
         r#"
-impl Quicksilver for {name} {{
-    const MIRROR: Type = Type::Struct(&Struct {{
+impl ::quicksilver::Quicksilver for {name} {{
+    const MIRROR: ::quicksilver::Type = ::quicksilver::Type::Struct(&::quicksilver::Struct {{
         name: "{name}",
-        size: size_of::<Self>(),
+        size: ::std::mem::size_of::<Self>(),
         align: align_of::<Self>(),
         fields: &["#
     )
@@ -111,7 +111,7 @@ fn generate_field(result: &mut String, name: &str, ty: &str) {
     write!(
         result,
         r#"
-Field {{
+::quicksilver::Field {{
     name: "{name}",
     ty: {ty},
     offset: ::std::mem::offset_of!(Self, {name}),
@@ -244,11 +244,11 @@ fn generate_enum_impl(name: String, input: TokenStream) -> Result<TokenStream, M
     write!(
         result,
         r#"
-impl Quicksilver for {name} {{
-    const MIRROR: Type = Type::CEnum(&CEnum {{
+impl ::quicksilver::Quicksilver for {name} {{
+    const MIRROR: ::quicksilver::Type = ::quicksilver::Type::CEnum(&::quicksilver::CEnum {{
         name: "{name}",
-        size: size_of::<Self>(),
-        align: align_of::<Self>(),
+        size: ::std::mem::size_of::<Self>(),
+        align: ::std::mem::align_of::<Self>(),
         variants: &["#
     )
     .unwrap();

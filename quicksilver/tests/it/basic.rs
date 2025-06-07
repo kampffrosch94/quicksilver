@@ -1,7 +1,6 @@
 use quicksilver::Quicksilver;
 use quicksilver::reflections::ValueReflection;
 use quicksilver::reflections::reflect;
-use quicksilver::*;
 
 #[derive(Debug, Quicksilver)]
 struct Point {
