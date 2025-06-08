@@ -5,11 +5,8 @@ use crate::{
     vec::VecReflection,
 };
 
-pub fn reflect_ref<T: Quicksilver>(val: &T) -> StructReflection<'_> {
-    match T::MIRROR {
-        Type::Struct(s) => unsafe { reflect_struct_ref(val as *const T as *const u8, s) },
-        _ => panic!("Unsupported type"),
-    }
+pub fn reflect_ref<T: Quicksilver>(val: &T) -> ValueReflection<'_> {
+    unsafe { reflect_value_ref(val as *const T as *const u8, &T::MIRROR) }
 }
 
 pub unsafe fn reflect_struct_ref(base: *const u8, mirror: &Struct) -> StructReflection<'_> {

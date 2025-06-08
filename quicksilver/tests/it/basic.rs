@@ -33,7 +33,9 @@ fn test_reflection_my_data() {
         is_active: 1,
     };
 
-    let mut reflected_data = reflect(&mut my_data);
+    let ValueReflection::Struct(ref mut reflected_data) = reflect(&mut my_data) else {
+        panic!()
+    };
 
     assert_eq!(reflected_data.fields.len(), 5);
 

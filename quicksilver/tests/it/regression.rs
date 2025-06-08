@@ -1,4 +1,4 @@
-use quicksilver::{json::from_json, Quicksilver};
+use quicksilver::{Quicksilver, json::from_json};
 
 #[derive(Debug, Clone, Copy, PartialEq, Quicksilver)]
 pub struct FPos {

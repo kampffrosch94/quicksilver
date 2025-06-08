@@ -9,7 +9,7 @@ use crate::{
 };
 
 impl<'a> StructReflection<'a> {
-    pub fn struct_to_json(&self) -> String {
+    pub fn to_json(&self) -> String {
         let mut json_parts = Vec::new();
         for field in &self.fields {
             let field_name = format!("\"{}\"", field.name);
@@ -17,6 +17,12 @@ impl<'a> StructReflection<'a> {
             json_parts.push(format!("{}:{}", field_name, field_value));
         }
         format!("{{{}}}", json_parts.join(","))
+    }
+}
+
+impl<'a> ValueReflection<'a> {
+    pub fn to_json(&self) -> String {
+        value_to_json(self)
     }
 }
 
@@ -36,7 +42,7 @@ pub fn value_to_json(vr: &ValueReflection) -> String {
             let escaped_val = val.replace(r"\", r"\\").replace(r#"""#, r#"\""#);
             format!("\"{}\"", escaped_val)
         }
-        ValueReflection::Struct(s_ref) => s_ref.struct_to_json(),
+        ValueReflection::Struct(s_ref) => s_ref.to_json(),
         ValueReflection::Vec(vec_reflection) => {
             if vec_reflection.skip {
                 "[]".to_string()
@@ -66,7 +72,7 @@ pub fn value_to_json(vr: &ValueReflection) -> String {
                     if !first {
                         ret.push(',');
                     }
-                    ret.push_str(&elem.struct_to_json());
+                    ret.push_str(&elem.to_json());
                     first = false;
                 }
                 ret.push(']');

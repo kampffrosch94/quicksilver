@@ -42,11 +42,8 @@ pub struct CEnumReflection<'a> {
 }
 
 // TODO return value reflection instead
-pub fn reflect<T: Quicksilver>(val: &mut T) -> StructReflection<'_> {
-    match T::MIRROR {
-        Type::Struct(s) => unsafe { reflect_struct(val as *mut T as *mut u8, s) },
-        _ => panic!("Unsupported type"),
-    }
+pub fn reflect<T: Quicksilver>(val: &mut T) -> ValueReflection<'_> {
+    unsafe { reflect_value(val as *mut T as *mut u8, &T::MIRROR) }
 }
 
 pub unsafe fn reflect_struct(base: *mut u8, mirror: &Struct) -> StructReflection<'_> {
