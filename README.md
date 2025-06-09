@@ -41,3 +41,12 @@ If a container contains an unsupported type it can be skipped with the attribute
 - The json serializer/deserializer is not general purpose. It is only useable for roundtrips. It can't read arbitrary data. It just panics on error. Good enough for me, but maybe not for you.
 - Since quicksilver builds on `const` cycles are not supported. You can't store a `T` inside a `T`, even transitively.
 - Adding elements to a collection via the inspector is intended, but not yet fleshed out.
+
+## License
+
+Licensed under either of <a href="LICENSE-APACHE">Apache License, Version
+2.0</a> or <a href="LICENSE-MIT">MIT license</a> at your option.
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in this crate by you, as defined in the Apache-2.0 license, shall
+be dual licensed as above, without any additional terms or conditions.
