@@ -5,6 +5,9 @@ license.workspace = true
 edition.workspace = true
 authors.workspace = true
 repository.workspace = true
+keywords = ["reflection"]
+categories = ["development-tools"]
+description = "We have reflection at home!"
 
 [dependencies]
 quicksilver_derive = { version = "0.1.0", path = "../quicksilver_derive" }
