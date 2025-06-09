@@ -8,7 +8,7 @@ It has minimal compile time impact.
 
 ## Demo
 
-TODO
+https://github.com/user-attachments/assets/4ded322f-50f6-4258-b544-4dd27e22e593
 
 ## Use cases
 - serialization/deserialization roundtrip 
