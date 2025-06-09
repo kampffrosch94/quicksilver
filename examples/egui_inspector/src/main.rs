@@ -7,11 +7,13 @@ use std::sync::{Mutex, OnceLock};
 use eframe::{egui, emath};
 use quicksilver::reflections::*;
 use quicksilver::*;
+#[cfg(target_os = "linux")]
 use winit::platform::x11::EventLoopBuilderExtX11;
 
 fn main() -> eframe::Result {
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size([320.0, 240.0]),
+        viewport: egui::ViewportBuilder::default().with_inner_size([800.0, 800.0]),
+        #[cfg(target_os = "linux")]
         event_loop_builder: Some(Box::new(|el| {
             el.with_x11();
         })),
