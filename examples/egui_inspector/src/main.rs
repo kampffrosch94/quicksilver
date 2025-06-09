@@ -26,6 +26,7 @@ fn main() -> eframe::Result {
 
 #[derive(Debug, Quicksilver)]
 #[repr(C)]
+#[allow(unused)]
 enum Occupation {
     None,
     DemonKing = 5,
@@ -41,6 +42,7 @@ struct Person {
     houses: Vec<House>,
     pos: Pos,
     house_map: HashMap<Pos, House>,
+    maybe_nickname: Option<String>,
 }
 
 #[derive(Debug, Quicksilver, Clone)]
@@ -79,6 +81,7 @@ impl Default for Person {
             pos: Pos { x: 2, y: 3 },
             house_map,
             job: Occupation::None,
+            maybe_nickname: Some("TODO".into()),
         }
     }
 }
@@ -104,7 +107,7 @@ impl eframe::App for Person {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         reset_id();
         egui::CentralPanel::default().show(ctx, |ui| {
-            draw_reflection(ui, &mut reflect(self));
+            draw_value(ui, &mut reflect(self));
             ui.separator();
             if ui.button("Print Debug").clicked() {
                 dbg!(&self);
@@ -226,6 +229,16 @@ fn draw_value(ui: &mut egui::Ui, value: &mut ValueReflection) {
                     }
                 });
         }
+        ValueReflection::Option(o) => {
+            if let Some(ref mut inner) = o.get() {
+                ui.vertical(|ui| {
+                    ui.label("Some:");
+                    draw_value(ui, inner);
+                });
+            } else {
+                ui.label("None");
+            }
+        }
     }
 }
 
@@ -292,6 +305,16 @@ fn draw_value_ref(ui: &mut egui::Ui, value: &ValueReflection) {
         ValueReflection::CEnum(e) => {
             let name = e.variants.iter().find(|it| it.0 == *e.val).unwrap().1;
             ui.label(&format!("{}", name));
+        }
+        ValueReflection::Option(o) => {
+            if let Some(ref inner) = o.get_ref() {
+                ui.vertical(|ui| {
+                    ui.label("Some:");
+                    draw_value_ref(ui, inner);
+                });
+            } else {
+                ui.label("None");
+            }
         }
     }
 }
