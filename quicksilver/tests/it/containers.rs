@@ -124,3 +124,42 @@ fn test_json_serialization() {
     let deserialized = from_json::<MyData>(&json_string);
     assert_eq!(my_data, deserialized);
 }
+
+#[derive(Debug, PartialEq, Quicksilver)]
+struct OptionHolder {
+    val: Option<Point>,
+    val2: Option<Point>,
+}
+
+#[test]
+fn option_roundtrip() {
+    let val = OptionHolder {
+        val: Some(Point { x: 1, y: 2 }),
+        val2: None,
+    };
+    let s = reflect_ref(&val).to_json();
+    let val2 = from_json::<OptionHolder>(&s);
+    dbg!(&val2);
+    assert_eq!(val, val2);
+}
+
+#[derive(Debug, PartialEq, Quicksilver)]
+struct OptionHolder2 {
+    #[quicksilver(skip)]
+    inner: Option<Point>,
+    inner2: Option<Point>,
+}
+
+#[test]
+fn option_roundtrip_skip() {
+    let mut val = OptionHolder2 {
+        inner: Some(Point { x: 1, y: 2 }),
+        inner2: None,
+    };
+    let s = reflect_ref(&val).to_json();
+    let val2 = from_json::<OptionHolder2>(&s);
+    dbg!(&val2);
+    assert_ne!(val, val2);
+    val.inner = None;
+    assert_eq!(val, val2);
+}

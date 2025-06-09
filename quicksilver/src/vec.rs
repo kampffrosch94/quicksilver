@@ -102,7 +102,6 @@ pub struct VecReflection<'a> {
     pub ptr: *mut u8,
     pub vtable: &'a VecVtable,
     pub skip: bool,
-    pub _phantom: PhantomData<&'a u8>,
 }
 
 impl VecReflection<'_> {

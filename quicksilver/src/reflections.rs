@@ -1,3 +1,4 @@
+use crate::option::OptionReflection;
 use crate::{Quicksilver, Struct, Type, map::HMReflection, vec::VecReflection};
 use std::fmt::Debug;
 
@@ -20,6 +21,7 @@ pub enum ValueReflection<'a> {
     CEnum(Box<CEnumReflection<'a>>),
     Vec(Box<VecReflection<'a>>),
     HashMap(Box<HMReflection<'a>>),
+    Option(Box<OptionReflection<'a>>),
 }
 
 #[repr(C)]
@@ -41,7 +43,6 @@ pub struct CEnumReflection<'a> {
     pub variants: &'a [(i32, &'a str)],
 }
 
-// TODO return value reflection instead
 pub fn reflect<T: Quicksilver>(val: &mut T) -> ValueReflection<'_> {
     unsafe { reflect_value(val as *mut T as *mut u8, &T::MIRROR) }
 }
@@ -119,7 +120,6 @@ pub unsafe fn reflect_value(ptr: *mut u8, ty: &Type) -> ValueReflection {
             ptr,
             vtable: &v.vtable,
             skip: v.skip,
-            _phantom: std::marker::PhantomData,
         })),
         Type::HashMap(hm) => ValueReflection::HashMap(Box::new(HMReflection {
             key: hm.key,
@@ -127,7 +127,12 @@ pub unsafe fn reflect_value(ptr: *mut u8, ty: &Type) -> ValueReflection {
             ptr,
             vtable: &hm.vtable,
             skip: hm.skip,
-            _phantom: std::marker::PhantomData,
+        })),
+        Type::Option(o) => ValueReflection::Option(Box::new(OptionReflection {
+            element: o.element,
+            ptr: ptr,
+            vtable: &o.vtable,
+            skip: o.skip,
         })),
     }
 }

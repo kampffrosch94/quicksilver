@@ -149,7 +149,6 @@ pub struct HMReflection<'a> {
     pub ptr: *mut u8,
     pub vtable: &'a HMVtable,
     pub skip: bool,
-    pub _phantom: PhantomData<&'a u8>,
 }
 
 impl HMReflection<'_> {

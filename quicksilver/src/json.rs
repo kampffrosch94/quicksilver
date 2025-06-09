@@ -79,6 +79,18 @@ pub fn value_to_json(vr: &ValueReflection) -> String {
                 ret
             }
         }
+        ValueReflection::Option(o_reflection) => {
+            if o_reflection.skip {
+                "[]".to_string()
+            } else {
+                let mut ret = "[".to_string();
+                if let Some(inner) = o_reflection.get_ref() {
+                    ret.push_str(&inner.to_json());
+                }
+                ret.push(']');
+                ret
+            }
+        }
     }
 }
 
@@ -99,7 +111,6 @@ pub fn from_json<T: Quicksilver>(s: &str) -> T {
 }
 
 unsafe fn deserialize_struct(walker: &mut JsonWalker, base: *mut u8, mirror: &Struct) {
-    println!("{}", walker.chars.as_str());
     walker.consume_char('{');
     for field in mirror.fields {
         walker.consume_field(field.name);
@@ -212,14 +223,22 @@ unsafe fn deserialize_field(walker: &mut JsonWalker, base: *mut u8, ty: &Type) {
                 walker.consume_field("key");
                 deserialize_field(walker, key, hm.key);
                 walker.consume_char(',');
-                println!("Key Ok");
                 walker.consume_field("value");
-                dbg!(hm);
                 deserialize_field(walker, value, hm.value);
 
-                println!("Value Ok");
                 walker.consume_char('}');
                 (hm.vtable.fill_with)(base, key, value);
+            }
+            walker.consume_char(']');
+        },
+        Type::Option(o) => unsafe {
+            (o.vtable.new_at)(base);
+            walker.consume_char('[');
+
+            if peek(&walker.chars) != ']' {
+                let element = std::alloc::alloc(o.element.layout());
+                deserialize_field(walker, element, o.element);
+                (o.vtable.set)(base, Some(element));
             }
             walker.consume_char(']');
         },

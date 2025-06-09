@@ -1,6 +1,7 @@
 use crate::{
     Quicksilver, Struct, Type,
     map::HMReflection,
+    option::OptionReflection,
     reflections::{CEnumReflection, FieldReflection, StructReflection, ValueReflection},
     vec::VecReflection,
 };
@@ -82,7 +83,6 @@ pub unsafe fn reflect_value_ref(ptr: *const u8, ty: &Type) -> ValueReflection {
             ptr: ptr as *mut u8,
             vtable: &v.vtable,
             skip: v.skip,
-            _phantom: std::marker::PhantomData,
         })),
         Type::HashMap(hm) => ValueReflection::HashMap(Box::new(HMReflection {
             key: hm.key,
@@ -90,7 +90,12 @@ pub unsafe fn reflect_value_ref(ptr: *const u8, ty: &Type) -> ValueReflection {
             ptr: ptr as *mut u8,
             vtable: &hm.vtable,
             skip: hm.skip,
-            _phantom: std::marker::PhantomData,
+        })),
+        Type::Option(o) => ValueReflection::Option(Box::new(OptionReflection {
+            element: o.element,
+            ptr: ptr as *mut u8,
+            vtable: &o.vtable,
+            skip: o.skip,
         })),
     }
 }

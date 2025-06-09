@@ -3,12 +3,14 @@ use std::collections::HashMap;
 use std::hash::Hash;
 
 use map::{HMVtable, HMVtableCreator};
+use option::{OptionVtable, OptionVtableCreator};
 pub use quicksilver_derive::Quicksilver;
 use vec::{VecVtable, VecVtableCreator};
 
 pub mod empty;
 pub mod json;
 pub mod map;
+pub mod option;
 pub mod reflections;
 pub mod reflections_ref;
 pub mod vec;
@@ -27,6 +29,7 @@ pub enum Type {
     String,
     Vec(VecType),
     HashMap(HMType),
+    Option(OptionType),
     Struct(&'static Struct),
     CEnum(&'static CEnum),
 }
@@ -48,6 +51,7 @@ impl Type {
             Type::HashMap(hm) => unsafe { Layout::from_size_align_unchecked(hm.size, hm.align) },
             Type::Struct(s) => unsafe { Layout::from_size_align_unchecked(s.size, s.align) },
             Type::CEnum(e) => unsafe { Layout::from_size_align_unchecked(e.size, e.align) },
+            Type::Option(o) => unsafe { Layout::from_size_align_unchecked(o.size, o.align) },
         }
     }
 }
@@ -66,6 +70,15 @@ pub struct HMType {
     pub key: &'static Type,
     pub value: &'static Type,
     pub vtable: HMVtable,
+    pub skip: bool,
+    pub size: usize,
+    pub align: usize,
+}
+
+#[derive(Debug)]
+pub struct OptionType {
+    pub element: &'static Type,
+    pub vtable: OptionVtable,
     pub skip: bool,
     pub size: usize,
     pub align: usize,
@@ -141,6 +154,19 @@ where
         key: &Key::MIRROR,
         value: &Value::MIRROR,
         vtable: HMVtableCreator::<Key, Value>::VTABLE,
+        skip: false,
+        size: size_of::<Self>(),
+        align: align_of::<Self>(),
+    });
+}
+
+impl<T> Quicksilver for Option<T>
+where
+    T: Quicksilver,
+{
+    const MIRROR: Type = Type::Option(OptionType {
+        element: &T::MIRROR,
+        vtable: OptionVtableCreator::<T>::VTABLE,
         skip: false,
         size: size_of::<Self>(),
         align: align_of::<Self>(),

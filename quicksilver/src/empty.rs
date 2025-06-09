@@ -1,3 +1,5 @@
+use crate::OptionType;
+use crate::option::EmptyOptionVtableCreator;
 use crate::{HMType, Struct, Type, VecType, map::EmptyHMVtableCreator, vec::EmptyVecVtableCreator};
 use std::collections::HashMap;
 use std::hash::Hash;
@@ -33,6 +35,16 @@ where
         skip: true,
         key: &EMPTY_STRUCT,
         value: &EMPTY_STRUCT,
+        size: size_of::<Self>(),
+        align: align_of::<Self>(),
+    });
+}
+
+impl<T> EmptyContainer for Option<T> {
+    const EMPTY: Type = Type::Option(OptionType {
+        element: &EMPTY_STRUCT,
+        vtable: EmptyOptionVtableCreator::<T>::VTABLE,
+        skip: true,
         size: size_of::<Self>(),
         align: align_of::<Self>(),
     });
