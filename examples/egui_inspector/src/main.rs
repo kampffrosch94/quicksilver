@@ -1,7 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 #![allow(rustdoc::missing_crate_level_docs)] // it's an example
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Mutex, OnceLock};
 
 use eframe::{egui, emath};
@@ -45,6 +45,7 @@ struct Person {
     pos: Pos,
     house_map: HashMap<Pos, House>,
     maybe_nickname: Option<String>,
+    setting: HashSet<String>,
 }
 
 #[derive(Debug, Quicksilver, Clone)]
@@ -84,6 +85,12 @@ impl Default for Person {
             house_map,
             job: Occupation::None,
             maybe_nickname: Some("TODO".into()),
+            setting: {
+                let mut hs = HashSet::new();
+                hs.insert("SciFi".into());
+                hs.insert("Comedy".into());
+                hs
+            },
         }
     }
 }
@@ -241,6 +248,9 @@ fn draw_value(ui: &mut egui::Ui, value: &mut ValueReflection) {
                 ui.label("None");
             }
         }
+        ref outer @ ValueReflection::HashSet(_) => {
+            draw_value_ref(ui, outer);
+        }
     }
 }
 
@@ -289,6 +299,19 @@ fn draw_value_ref(ui: &mut egui::Ui, value: &ValueReflection) {
                 }
             });
         }
+        ValueReflection::HashSet(hsreflection) => {
+            egui::Grid::new(next_id())
+                .min_col_width(50.)
+                .num_columns(2)
+                .striped(true)
+                .show(ui, |ui| {
+                    for element in hsreflection.get_elements_ref() {
+                        draw_value_ref(ui, &element);
+                        ui.end_row();
+                    }
+                });
+        }
+
         ValueReflection::HashMap(hmreflection) => {
             egui::Grid::new(next_id())
                 .min_col_width(50.)

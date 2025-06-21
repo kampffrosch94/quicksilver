@@ -1,4 +1,5 @@
 use crate::option::OptionReflection;
+use crate::set::HSReflection;
 use crate::{Quicksilver, Struct, Type, map::HMReflection, vec::VecReflection};
 use std::fmt::Debug;
 
@@ -21,6 +22,7 @@ pub enum ValueReflection<'a> {
     CEnum(Box<CEnumReflection<'a>>),
     Vec(Box<VecReflection<'a>>),
     HashMap(Box<HMReflection<'a>>),
+    HashSet(Box<HSReflection<'a>>),
     Option(Box<OptionReflection<'a>>),
 }
 
@@ -128,9 +130,12 @@ pub unsafe fn reflect_value(ptr: *mut u8, ty: &Type) -> ValueReflection {
             vtable: &hm.vtable,
             skip: hm.skip,
         })),
-        Type::HashSet(hs) => {
-            todo!();
-        }
+        Type::HashSet(hs) => ValueReflection::HashSet(Box::new(HSReflection {
+            element: hs.element,
+            ptr,
+            vtable: &hs.vtable,
+            skip: hs.skip,
+        })),
         Type::Option(o) => ValueReflection::Option(Box::new(OptionReflection {
             element: o.element,
             ptr: ptr,

@@ -66,14 +66,14 @@ where
 }
 
 #[repr(C)]
-pub struct HMReflection<'a> {
+pub struct HSReflection<'a> {
     pub element: &'a Type,
     pub ptr: *mut u8,
     pub vtable: &'a HSVtable,
     pub skip: bool,
 }
 
-impl HMReflection<'_> {
+impl HSReflection<'_> {
     pub fn get_elements_ref(&self) -> Vec<ValueReflection<'_>> {
         unsafe { (self.vtable.get_elements_ref)(self.ptr) }
     }
