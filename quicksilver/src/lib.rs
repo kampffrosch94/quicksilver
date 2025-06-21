@@ -13,6 +13,7 @@ pub mod map;
 pub mod option;
 pub mod reflections;
 pub mod reflections_ref;
+pub mod set;
 pub mod vec;
 
 #[derive(Debug)]
