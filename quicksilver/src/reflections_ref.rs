@@ -3,6 +3,7 @@ use crate::{
     map::HMReflection,
     option::OptionReflection,
     reflections::{CEnumReflection, FieldReflection, StructReflection, ValueReflection},
+    set::HSReflection,
     vec::VecReflection,
 };
 
@@ -90,6 +91,12 @@ pub unsafe fn reflect_value_ref(ptr: *const u8, ty: &Type) -> ValueReflection {
             ptr: ptr as *mut u8,
             vtable: &hm.vtable,
             skip: hm.skip,
+        })),
+        Type::HashSet(hs) => ValueReflection::HashSet(Box::new(HSReflection {
+            element: hs.element,
+            ptr: ptr as *mut u8,
+            vtable: &hs.vtable,
+            skip: hs.skip,
         })),
         Type::Option(o) => ValueReflection::Option(Box::new(OptionReflection {
             element: o.element,

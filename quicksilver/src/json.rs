@@ -61,6 +61,24 @@ pub fn value_to_json(vr: &ValueReflection) -> String {
                 ret
             }
         }
+        ValueReflection::HashSet(hsreflection) => {
+            if hsreflection.skip {
+                "[]".to_string()
+            } else {
+                let vec_reflection = &mut hsreflection.get_elements_ref();
+                let mut ret = "[".to_string();
+                let mut first = true;
+                for elem in vec_reflection {
+                    if !first {
+                        ret.push(',');
+                    }
+                    ret.push_str(&elem.to_json());
+                    first = false;
+                }
+                ret.push(']');
+                ret
+            }
+        }
         ValueReflection::HashMap(hmreflection) => {
             if hmreflection.skip {
                 "[]".to_string()
@@ -231,6 +249,19 @@ unsafe fn deserialize_field(walker: &mut JsonWalker, base: *mut u8, ty: &Type) {
             }
             walker.consume_char(']');
         },
+
+        Type::HashSet(hs) => unsafe {
+            (hs.vtable.new_at)(base);
+            walker.consume_char('[');
+            while peek(&walker.chars) != ']' {
+                walker.consume_maybe(',');
+                let element = std::alloc::alloc(hs.element.layout());
+                deserialize_field(walker, element, hs.element);
+                (hs.vtable.fill_with)(base, element);
+            }
+            walker.consume_char(']');
+        },
+
         Type::Option(o) => unsafe {
             (o.vtable.new_at)(base);
             walker.consume_char('[');
