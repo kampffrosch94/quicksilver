@@ -1,7 +1,8 @@
-use crate::OptionType;
 use crate::option::EmptyOptionVtableCreator;
+use crate::set::EmptyHSVtableCreator;
 use crate::{HMType, Struct, Type, VecType, map::EmptyHMVtableCreator, vec::EmptyVecVtableCreator};
-use std::collections::HashMap;
+use crate::{HSType, OptionType};
+use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 
 pub trait EmptyContainer {
@@ -45,6 +46,20 @@ impl<T> EmptyContainer for Option<T> {
         element: &EMPTY_STRUCT,
         vtable: EmptyOptionVtableCreator::<T>::VTABLE,
         skip: true,
+        size: size_of::<Self>(),
+        align: align_of::<Self>(),
+    });
+}
+
+impl<K> EmptyContainer for HashSet<K>
+where
+    K: Eq,
+    K: Hash,
+{
+    const EMPTY: Type = Type::HashSet(HSType {
+        vtable: EmptyHSVtableCreator::<K>::VTABLE,
+        skip: true,
+        element: &EMPTY_STRUCT,
         size: size_of::<Self>(),
         align: align_of::<Self>(),
     });

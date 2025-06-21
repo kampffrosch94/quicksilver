@@ -78,3 +78,35 @@ impl HSReflection<'_> {
         unsafe { (self.vtable.get_elements_ref)(self.ptr) }
     }
 }
+
+pub struct EmptyHSVtableCreator<T> {
+    _phantom: PhantomData<T>,
+}
+
+impl<T> EmptyHSVtableCreator<T>
+where
+    T: Eq,
+    T: Hash,
+{
+    pub const VTABLE: HSVtable = HSVtable {
+        new_at: Self::new_at,
+        fill_with: empty_fill_with,
+        get_elements_ref: empty_get_elements_ref,
+    };
+
+    unsafe fn new_at(ptr: *mut u8) {
+        let v: HashSet<T> = HashSet::new();
+        let ptr = ptr as *mut HashSet<T>;
+        unsafe {
+            ptr.write(v);
+        }
+    }
+}
+
+unsafe fn empty_fill_with(_ptr: *mut u8, _element_ptr: *mut u8) {
+    panic!("Not supported on skipped fields");
+}
+
+unsafe fn empty_get_elements_ref(_ptr: *const u8) -> Vec<ValueReflection<'static>> {
+    panic!("Not supported on skipped fields");
+}

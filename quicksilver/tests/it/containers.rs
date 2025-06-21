@@ -182,3 +182,25 @@ fn hs_roundtrip() {
     dbg!(&val2);
     assert_eq!(val, val2);
 }
+
+#[derive(Debug, PartialEq, Quicksilver)]
+struct HSHolder2 {
+    #[quicksilver(skip)]
+    inner: HashSet<Point>,
+}
+
+#[test]
+fn hs_roundtrip2() {
+    let mut val = HSHolder2 {
+        inner: HashSet::new(),
+    };
+    val.inner.insert(Point { x: 2, y: 3 });
+    val.inner.insert(Point { x: 2, y: 4 });
+    val.inner.insert(Point { x: 2, y: 5 });
+    let s = reflect_ref(&val).to_json();
+    let val2 = from_json::<HSHolder2>(&s);
+    dbg!(&val2);
+    assert_ne!(val, val2);
+    val.inner.clear();
+    assert_eq!(val, val2);
+}
