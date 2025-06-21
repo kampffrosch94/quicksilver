@@ -208,3 +208,7 @@ fn hs_roundtrip2() {
 #[derive(Debug, Quicksilver)]
 #[allow(unused, private_interfaces)]
 pub struct Fov(pub HashSet<Point>);
+
+#[derive(Debug, Quicksilver)]
+#[allow(unused, private_interfaces)]
+pub struct Fov2(pub(crate) HashSet<Point>);

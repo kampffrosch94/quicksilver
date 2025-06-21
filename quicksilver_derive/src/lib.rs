@@ -159,9 +159,16 @@ fn parse_fields(input: TokenStream) -> Result<Vec<Field>, MacroError> {
                 level -= 1;
             }
 
-            if !matches!(current, Some(TT::Ident(ref ident))
-                if ["pub", "pub(crate)"].contains(&ident.to_string().as_str()))
-            {
+            let skip = match current {
+                Some(TT::Ident(ref ident)) if ident.to_string().as_str() == "pub" => true,
+                Some(TT::Group(ref g)) => {
+                    let tt = g.stream().into_iter().next();
+                    matches!(tt, Some(TT::Ident(c)) if c.to_string().as_str() == "crate")
+                }
+                _ => false,
+            };
+
+            if !skip {
                 buffer.push(current.unwrap());
             }
         }
@@ -219,10 +226,13 @@ fn parse_field(mut buffer: &[TokenTree]) -> Result<Field, MacroError> {
             let ty = parse_type(&buffer, &ty.to_string(), skip)?;
             Ok(Field { name, ty })
         }
-        _ => error!(
-            &[buffer[0].clone(), buffer.last().unwrap().clone()],
-            "Quicksilver can't parse this."
-        ),
+        _ => {
+            dbg!(&buffer);
+            error!(
+                &[buffer[0].clone(), buffer.last().unwrap().clone()],
+                "Quicksilver can't parse this."
+            )
+        }
     }
 }
 
