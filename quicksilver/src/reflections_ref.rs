@@ -91,6 +91,9 @@ pub unsafe fn reflect_value_ref(ptr: *const u8, ty: &Type) -> ValueReflection {
             vtable: &hm.vtable,
             skip: hm.skip,
         })),
+        Type::HashSet(hs) => {
+            todo!();
+        }
         Type::Option(o) => ValueReflection::Option(Box::new(OptionReflection {
             element: o.element,
             ptr: ptr as *mut u8,

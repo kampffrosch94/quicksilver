@@ -128,6 +128,9 @@ pub unsafe fn reflect_value(ptr: *mut u8, ty: &Type) -> ValueReflection {
             vtable: &hm.vtable,
             skip: hm.skip,
         })),
+        Type::HashSet(hs) => {
+            todo!();
+        }
         Type::Option(o) => ValueReflection::Option(Box::new(OptionReflection {
             element: o.element,
             ptr: ptr,

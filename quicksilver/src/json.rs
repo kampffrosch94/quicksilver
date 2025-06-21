@@ -231,6 +231,11 @@ unsafe fn deserialize_field(walker: &mut JsonWalker, base: *mut u8, ty: &Type) {
             }
             walker.consume_char(']');
         },
+
+        Type::HashSet(hs) => {
+            todo!();
+        }
+
         Type::Option(o) => unsafe {
             (o.vtable.new_at)(base);
             walker.consume_char('[');

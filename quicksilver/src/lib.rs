@@ -1,10 +1,11 @@
-use std::alloc::Layout;
 use std::collections::HashMap;
 use std::hash::Hash;
+use std::{alloc::Layout, collections::HashSet};
 
 use map::{HMVtable, HMVtableCreator};
 use option::{OptionVtable, OptionVtableCreator};
 pub use quicksilver_derive::Quicksilver;
+use set::{HSVtable, HSVtableCreator};
 use vec::{VecVtable, VecVtableCreator};
 
 pub mod empty;
@@ -30,6 +31,7 @@ pub enum Type {
     String,
     Vec(VecType),
     HashMap(HMType),
+    HashSet(HSType),
     Option(OptionType),
     Struct(&'static Struct),
     CEnum(&'static CEnum),
@@ -50,6 +52,7 @@ impl Type {
             Type::String => Layout::new::<String>(),
             Type::Vec(v) => unsafe { Layout::from_size_align_unchecked(v.size, v.align) },
             Type::HashMap(hm) => unsafe { Layout::from_size_align_unchecked(hm.size, hm.align) },
+            Type::HashSet(hs) => unsafe { Layout::from_size_align_unchecked(hs.size, hs.align) },
             Type::Struct(s) => unsafe { Layout::from_size_align_unchecked(s.size, s.align) },
             Type::CEnum(e) => unsafe { Layout::from_size_align_unchecked(e.size, e.align) },
             Type::Option(o) => unsafe { Layout::from_size_align_unchecked(o.size, o.align) },
@@ -71,6 +74,15 @@ pub struct HMType {
     pub key: &'static Type,
     pub value: &'static Type,
     pub vtable: HMVtable,
+    pub skip: bool,
+    pub size: usize,
+    pub align: usize,
+}
+
+#[derive(Debug)]
+pub struct HSType {
+    pub element: &'static Type,
+    pub vtable: HSVtable,
     pub skip: bool,
     pub size: usize,
     pub align: usize,
@@ -155,6 +167,20 @@ where
         key: &Key::MIRROR,
         value: &Value::MIRROR,
         vtable: HMVtableCreator::<Key, Value>::VTABLE,
+        skip: false,
+        size: size_of::<Self>(),
+        align: align_of::<Self>(),
+    });
+}
+
+impl<T> Quicksilver for HashSet<T>
+where
+    T: Eq + Hash,
+    T: Quicksilver,
+{
+    const MIRROR: Type = Type::HashSet(HSType {
+        element: &T::MIRROR,
+        vtable: HSVtableCreator::<T>::VTABLE,
         skip: false,
         size: size_of::<Self>(),
         align: align_of::<Self>(),

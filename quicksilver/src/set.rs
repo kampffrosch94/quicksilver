@@ -3,9 +3,9 @@ use std::marker::PhantomData;
 
 use std::hash::Hash;
 
-use crate::Quicksilver;
 use crate::reflections::ValueReflection;
 use crate::reflections_ref::reflect_value_ref;
+use crate::{Quicksilver, Type};
 
 #[derive(Debug)]
 pub struct HSVtable {
@@ -62,5 +62,19 @@ where
             }
         }
         result
+    }
+}
+
+#[repr(C)]
+pub struct HMReflection<'a> {
+    pub element: &'a Type,
+    pub ptr: *mut u8,
+    pub vtable: &'a HSVtable,
+    pub skip: bool,
+}
+
+impl HMReflection<'_> {
+    pub fn get_elements_ref(&self) -> Vec<ValueReflection<'_>> {
+        unsafe { (self.vtable.get_elements_ref)(self.ptr) }
     }
 }
