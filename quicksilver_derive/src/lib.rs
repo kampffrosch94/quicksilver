@@ -10,6 +10,7 @@ macro_rules! error {
     };
 }
 
+#[allow(unused)]
 macro_rules! error_single {
     ($tt:expr, $($arg:tt)*) => {
         return Err(MacroError::start_end($tt, $tt, format!($($arg)*)))
@@ -81,8 +82,7 @@ fn inner(item: TokenStream) -> Result<TokenStream, MacroError> {
             generate_impl(name, fields)
         }
         other @ _ => {
-            dbg!(other);
-            panic!("Unsupported struct shape.")
+            panic!("Unsupported struct shape.\n{other:?}")
         }
     }
 }
@@ -206,12 +206,16 @@ fn parse_field(mut buffer: &[TokenTree]) -> Result<Field, MacroError> {
             let ty = parse_type(&buffer, &ty.to_string(), skip)?;
             Ok(Field { name, ty })
         }
-        (Some(TT::Ident(name)), Some(tt_colon @ TT::Punct(colon)), Some(TT::Ident(ty))) => {
-            if colon.as_char() != ':' {
-                error_single!(tt_colon, "Expected ':'")
-            }
+        (Some(TT::Ident(name)), Some(TT::Punct(colon)), Some(TT::Ident(ty)))
+            if colon.as_char() == ':' =>
+        {
             let name = Some(name.to_string());
             let buffer = &buffer[2..];
+            let ty = parse_type(&buffer, &ty.to_string(), skip)?;
+            Ok(Field { name, ty })
+        }
+        (Some(TT::Ident(ty)), Some(TT::Punct(stair)), Some(_)) if stair.as_char() == '<' => {
+            let name = None;
             let ty = parse_type(&buffer, &ty.to_string(), skip)?;
             Ok(Field { name, ty })
         }

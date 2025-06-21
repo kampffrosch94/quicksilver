@@ -17,6 +17,7 @@ impl MacroError {
         }
     }
 
+    #[allow(unused)]
     pub fn start_end(start: &TokenTree, end: &TokenTree, message: String) -> Self {
         let start = start.span();
         let end = end.span();

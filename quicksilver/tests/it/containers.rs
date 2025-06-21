@@ -204,3 +204,7 @@ fn hs_roundtrip2() {
     val.inner.clear();
     assert_eq!(val, val2);
 }
+
+#[derive(Debug, Quicksilver)]
+#[allow(unused, private_interfaces)]
+pub struct Fov(pub HashSet<Point>);
