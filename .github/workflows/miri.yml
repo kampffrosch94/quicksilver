@@ -1,0 +1,26 @@
+name: Miri
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    name: cargo miri
+    runs-on: ubuntu-latest
+
+    env:
+      CARGO_TERM_COLOR: always
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v0-miri"
+
+      - run: |
+         rustup toolchain install nightly --profile minimal --no-self-update
+         rustup +nightly component add miri
+         cargo install cargo-nextest --locked
+
+      - run: |
+          cargo +nightly miri nextest run -j12
