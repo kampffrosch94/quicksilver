@@ -5,6 +5,7 @@ license.workspace = true
 edition.workspace = true
 authors.workspace = true
 repository.workspace = true
+publish = false
 
 [dependencies]
 eframe = "0.31.1"
