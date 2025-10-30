@@ -31,3 +31,13 @@ fn enum_roundtrip() {
     dbg!(&val2);
     assert_eq!(val, val2);
 }
+
+#[test]
+fn enum_roundtrip_naked() {
+    let val = Number::Two;
+    let s = reflect_ref(&val).to_json();
+    println!("reflected val = {}", &s);
+    let val2 = from_json::<Number>(&s);
+    dbg!(&val2);
+    assert_eq!(val, val2);
+}

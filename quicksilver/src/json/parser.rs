@@ -17,6 +17,11 @@ pub fn peek(chars: &Chars) -> char {
         .expect("String ended while parsing.")
 }
 
+/// Might be at the end of the string, in which case it returns None
+pub fn peek_maybe(chars: &Chars) -> Option<char> {
+    chars.as_str().chars().next()
+}
+
 impl JsonWalker<'_> {
     #[track_caller]
     pub fn consume_char(&mut self, arg: char) {
@@ -47,7 +52,8 @@ impl JsonWalker<'_> {
         } {
             buffer.push(c);
             let _ = chars.next();
-            c = peek(chars);
+            let Some(next) = peek_maybe(chars) else { break };
+            c = next
         }
         buffer
             .parse::<T>()

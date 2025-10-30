@@ -115,13 +115,14 @@ pub fn value_to_json(vr: &ValueReflection) -> String {
 pub fn from_json<T: Quicksilver>(s: &str) -> T {
     let mut result: MaybeUninit<T> = MaybeUninit::uninit();
     let ptr = result.as_mut_ptr();
-    let mut walker = JsonWalker {
+    let walker = &mut JsonWalker {
         chars: s.chars(),
         buffer: String::new(),
     };
     unsafe {
         match T::MIRROR {
-            Type::Struct(s) => deserialize_struct(&mut walker, ptr as *mut u8, s),
+            Type::Struct(s) => deserialize_struct(walker, ptr as *mut u8, s),
+            ref mirror @ Type::CEnum(_) => deserialize_field(walker, ptr as *mut u8, mirror),
             _ => panic!("Unsupported type"),
         }
         result.assume_init()
