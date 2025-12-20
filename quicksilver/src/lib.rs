@@ -139,6 +139,7 @@ pub struct RustEnum {
     pub variants: &'static [RustEnumVariant],
     pub reflect: unsafe fn(*mut u8) -> RustEnumReflection<'static>,
     pub reflect_ref: unsafe fn(*const u8) -> RustEnumReflection<'static>,
+    pub write: unsafe fn(this: *mut u8, variant: usize, fields: &[*mut u8]),
 }
 
 pub trait Quicksilver {

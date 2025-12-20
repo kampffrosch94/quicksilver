@@ -123,6 +123,32 @@ impl Quicksilver for Ability {
                 },
             }
         },
+        write: |this, variant, fields| {
+            let this = this as *mut Self;
+            match (variant, fields) {
+                (0, []) => {
+                    unsafe { ::std::ptr::write(this, Self::DoNothing) };
+                }
+                (1, [who, damage]) => {
+                    let who = unsafe { Box::from_raw(*who as *mut String) };
+                    let damage = unsafe { Box::from_raw(*damage as *mut i32) };
+                    unsafe {
+                        ::std::ptr::write(
+                            this,
+                            Self::Attack {
+                                who: *who,
+                                damage: *damage,
+                            },
+                        )
+                    };
+                }
+                (2, [val0]) => {
+                    let val0 = unsafe { Box::from_raw(*val0 as *mut String) };
+                    unsafe { ::std::ptr::write(this, Self::Shout(*val0)) };
+                }
+                _ => unreachable!("Illegal operation. Setting enum variant {variant} on Ability"),
+            }
+        },
     });
 }
 
@@ -137,9 +163,9 @@ fn rust_enum_roundtrip() {
     };
     let s = reflect(&mut val).to_json();
     println!("{}", &s);
-    // let val2 = from_json::<Container>(&s);
-    // dbg!(&val2);
-    // assert_eq!(val, val2);
+    let val2 = from_json::<Container>(&s);
+    dbg!(&val2);
+    assert_eq!(val, val2);
 }
 
 #[test]

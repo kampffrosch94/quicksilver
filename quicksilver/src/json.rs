@@ -285,6 +285,30 @@ unsafe fn deserialize_field(walker: &mut JsonWalker, base: *mut u8, ty: &Type) {
             }
             walker.consume_char(']');
         },
-        Type::RustEnum(rust_enum) => todo!(),
+        Type::RustEnum(mirror) => {
+            walker.consume_char('{');
+            // figure out which variant we a derializing
+            walker.consume_field("__enum_variant");
+            let name = walker.consume_string();
+            let (index, variant) = mirror
+                .variants
+                .iter()
+                .enumerate()
+                .find(|(_, val)| val.name == name)
+                .unwrap_or_else(|| panic!("Can't find enum variant {name} in {}", mirror.name));
+            walker.consume_maybe(',');
+
+            let mut field_ptrs = Vec::new();
+            for (field_name, ty) in variant.fields {
+                walker.consume_field(field_name);
+                let ptr = unsafe { std::alloc::alloc(ty.layout()) };
+                field_ptrs.push(ptr); // TODO protect against memory leaks on panic/error
+                unsafe { deserialize_field(walker, ptr, ty) };
+                walker.consume_maybe(',');
+            }
+            walker.consume_char('}');
+
+            unsafe { (mirror.write)(base, index, &field_ptrs) }
+        }
     }
 }
