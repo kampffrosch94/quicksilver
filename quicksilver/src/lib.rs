@@ -138,6 +138,7 @@ pub struct RustEnum {
     pub name: &'static str,
     pub variants: &'static [RustEnumVariant],
     pub reflect: unsafe fn(*mut u8) -> RustEnumReflection<'static>,
+    pub reflect_ref: unsafe fn(*const u8) -> RustEnumReflection<'static>,
 }
 
 pub trait Quicksilver {
