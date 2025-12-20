@@ -400,9 +400,13 @@ RustEnumVariant {{
     let reflect_text = &mut String::new();
     let reflect_ref_text = &mut String::new();
 
-    reflect_ref_text.push_str(r#"todo!()"#);
     reflect_text.push_str(
         r#"let enum_val: &mut Self = unsafe { &mut *(ptr as *mut Self) };
+match enum_val {
+"#,
+    );
+    reflect_ref_text.push_str(
+        r#"let enum_val: &Self = unsafe { &*(ptr as *const Self) };
 match enum_val {
 "#,
     );
@@ -411,6 +415,7 @@ match enum_val {
         // write match arm
         let variant_name = &v.name;
         write!(reflect_text, r#"Self::{variant_name} "#).unwrap();
+        write!(reflect_ref_text, r#"Self::{variant_name} "#).unwrap();
         // different destructuring depending on tuple struct or "normal" struct
         let is_tuple = v
             .fields
@@ -419,19 +424,26 @@ match enum_val {
             .unwrap_or(false);
         if is_tuple {
             reflect_text.push('(');
+            reflect_ref_text.push('(');
             for (i, _) in v.fields.iter().enumerate() {
                 write!(reflect_text, "val{i},").unwrap();
+                write!(reflect_ref_text, "val{i},").unwrap();
             }
             reflect_text.push(')');
+            reflect_ref_text.push(')');
         } else {
             reflect_text.push('{');
+            reflect_ref_text.push('{');
             for field in v.fields.iter() {
                 let name = field.name.as_ref().unwrap();
                 write!(reflect_text, "{name},").unwrap();
+                write!(reflect_ref_text, "{name},").unwrap();
             }
             reflect_text.push('}');
+            reflect_ref_text.push('}');
         }
         reflect_text.push_str(" => ");
+        reflect_ref_text.push_str(" => ");
 
         write!(
             reflect_text,
@@ -444,20 +456,48 @@ RustEnumReflection {{
                     fields: vec!["#
         )
         .unwrap();
+        write!(
+            reflect_ref_text,
+            r#"
+RustEnumReflection {{
+                    name: "{enum_name}",
+                    variant_name: "{variant_name}",
+                    variant_idx: {variant_idx},
+                    ty: &Self::MIRROR,
+                    fields: vec!["#
+        )
+        .unwrap();
         for (i, field) in v.fields.iter().enumerate() {
             let name = field.name.clone().unwrap_or_else(|| format!("val{i}"));
             let mirror = &field.mirror;
-            write!(reflect_text, r#"
+            write!(
+                reflect_text,
+                r#"
 FieldReflection {{
     name: "{name}",
     value: unsafe {{
         reflect_value(&raw mut *{name} as *mut u8, &{mirror})
     }},
-}},"#).unwrap();
+}},"#
+            )
+            .unwrap();
+            write!(
+                reflect_ref_text,
+                r#"
+FieldReflection {{
+    name: "{name}",
+    value: unsafe {{
+        reflect_value_ref(&raw const *{name} as *const u8, &{mirror})
+    }},
+}},"#
+            )
+            .unwrap();
         }
         reflect_text.push_str("],},");
+        reflect_ref_text.push_str("],},");
     }
     reflect_text.push_str("}");
+    reflect_ref_text.push_str("}");
 
     write!(
         result,
