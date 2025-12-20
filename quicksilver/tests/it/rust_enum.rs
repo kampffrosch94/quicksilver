@@ -179,3 +179,11 @@ fn rust_enum_roundtrip_ref() {
     // dbg!(&val2);
     // assert_eq!(val, val2);
 }
+
+#[allow(unused)]
+#[derive(Debug, PartialEq, Quicksilver)]
+enum Ability2 {
+    DoNothing,
+    Attack { who: String, damage: i32 },
+    Shout(String),
+}

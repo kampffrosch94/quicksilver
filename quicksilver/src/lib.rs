@@ -5,7 +5,7 @@ use std::{alloc::Layout, collections::HashSet};
 use map::{HMVtable, HMVtableCreator};
 use option::{OptionVtable, OptionVtableCreator};
 pub use quicksilver_derive::Quicksilver;
-use reflections::{FieldReflection, RustEnumReflection, ValueReflection};
+use reflections::RustEnumReflection;
 use set::{HSVtable, HSVtableCreator};
 use vec::{VecVtable, VecVtableCreator};
 

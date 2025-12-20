@@ -81,20 +81,27 @@ fn inner(item: TokenStream) -> Result<TokenStream, MacroError> {
         iter.next(),
     ) {
         // regular old struct or enum
-        (Some(TT::Ident(s)), Some(TT::Ident(name)), Some(TT::Group(fields)), None, None) => {
-            match s.to_string().as_str() {
-                "struct" => {
-                    let name = name.to_string();
-                    let fields = parse_fields(fields.stream())?;
-                    generate_impl(name, fields)
-                }
-                "enum" => {
-                    let name = name.to_string();
-                    generate_enum_impl(name, fields.stream())
-                }
-                other @ _ => panic!("Unknown keyword {other:?}"),
+        (
+            Some(ref keyword @ TT::Ident(ref s)),
+            Some(TT::Ident(name)),
+            Some(TT::Group(fields)),
+            None,
+            None,
+        ) => match s.to_string().as_str() {
+            "struct" => {
+                let name = name.to_string();
+                let fields = parse_fields(fields.stream())?;
+                generate_struct_impl(name, fields)
             }
-        }
+            "enum" => {
+                let name = name.to_string();
+                match repr {
+                    Repr::Rust => generate_rust_enum_impl(name, fields.stream()),
+                    Repr::C => generate_c_enum_impl(name, fields.stream()),
+                }
+            }
+            other => error_single!(keyword, "Unknown keyword {other:?}"),
+        },
         // tuple struct
         (
             Some(TT::Ident(s)),
@@ -106,7 +113,7 @@ fn inner(item: TokenStream) -> Result<TokenStream, MacroError> {
             assert_eq!("struct", s.to_string());
             let name = name.to_string();
             let fields = parse_fields(fields.stream())?;
-            generate_impl(name, fields)
+            generate_struct_impl(name, fields)
         }
         other @ _ => {
             panic!("Unsupported struct shape.\n{other:?}")
@@ -114,7 +121,7 @@ fn inner(item: TokenStream) -> Result<TokenStream, MacroError> {
     }
 }
 
-fn generate_impl(name: String, fields: Vec<Field>) -> Result<TokenStream, MacroError> {
+fn generate_struct_impl(name: String, fields: Vec<Field>) -> Result<TokenStream, MacroError> {
     let result = &mut String::new();
     write!(
         result,
@@ -161,6 +168,7 @@ fn generate_field(result: &mut String, name: &str, ty: &str) {
     .unwrap()
 }
 
+#[derive(Debug)]
 struct Field {
     name: Option<String>,
     ty: String,
@@ -299,7 +307,7 @@ fn chunked<I>(a: impl IntoIterator<Item = I>, chunk_size: usize) -> impl Iterato
     })
 }
 
-fn generate_enum_impl(name: String, input: TokenStream) -> Result<TokenStream, MacroError> {
+fn generate_c_enum_impl(name: String, input: TokenStream) -> Result<TokenStream, MacroError> {
     let result = &mut String::new();
     write!(
         result,
@@ -347,4 +355,96 @@ impl ::quicksilver::Quicksilver for {name} {{
     )
     .unwrap();
     Ok(result.parse().unwrap())
+}
+
+fn generate_rust_enum_impl(name: String, input: TokenStream) -> Result<TokenStream, MacroError> {
+    let result = &mut String::new();
+    let variants = parse_rust_enum_variants(input)?;
+    let variant_text = &mut String::new();
+    for v in variants {
+        let name = v.name;
+        write!(
+            variant_text,
+            r#"
+RustEnumVariant {{
+    name: "{name}",
+    fields: &["#
+        )
+        .unwrap();
+        for (i, field) in v.fields.iter().enumerate() {
+            let name = field.name.clone().unwrap_or_else(|| i.to_string());
+            let ty = &field.ty;
+            write!(variant_text, r#"("{name}", {ty}),"#).unwrap()
+        }
+        variant_text.push_str("],}, ");
+    }
+
+    write!(
+        result,
+        r#"
+impl ::quicksilver::Quicksilver for {name} {{
+    const MIRROR: ::quicksilver::Type = ::quicksilver::Type::RustEnum(&::quicksilver::RustEnum {{
+        name: "{name}",
+        size: ::std::mem::size_of::<Self>(),
+        align: ::std::mem::align_of::<Self>(),
+        variants: &[{variant_text}],
+        reflect: |ptr| {{ todo!() }},
+        reflect_ref: |ptr| {{ todo!() }},
+        write: |this, variant, fields| {{ todo!() }},
+    }});
+}}
+"#
+    )
+    .unwrap();
+
+    Ok(result.parse().unwrap())
+}
+
+#[derive(Debug)]
+struct RustEnumVariant {
+    name: String,
+    fields: Vec<Field>,
+}
+
+fn parse_rust_enum_variants(input: TokenStream) -> Result<Vec<RustEnumVariant>, MacroError> {
+    dbg!(&input);
+    let mut r = Vec::new();
+
+    let mut iter = input.into_iter();
+    loop {
+        match (iter.next(), iter.next()) {
+            (None, None) => {
+                break;
+            }
+            (Some(TT::Ident(name)), Some(TT::Punct(comma))) if comma.as_char() == ',' => {
+                r.push(RustEnumVariant {
+                    name: name.to_string(),
+                    fields: Vec::new(),
+                });
+            }
+            (Some(TT::Ident(name)), None) => {
+                r.push(RustEnumVariant {
+                    name: name.to_string(),
+                    fields: Vec::new(),
+                });
+            }
+            (Some(TT::Ident(name)), Some(TT::Group(field_group))) => {
+                // consume next comma if any
+                match iter.next() {
+                    None => {}
+                    Some(TT::Punct(comma)) if comma.as_char() == ',' => {}
+                    Some(unexpected) => {
+                        error_single!(&unexpected, "Quicksilver can't parse this.")
+                    }
+                }
+                r.push(RustEnumVariant {
+                    name: name.to_string(),
+                    fields: parse_fields(field_group.stream())?,
+                });
+            }
+            _ => {}
+        }
+    }
+    dbg!(&r);
+    Ok(r)
 }
