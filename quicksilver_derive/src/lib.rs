@@ -25,9 +25,16 @@ pub fn derive_quicksilver(input: TokenStream) -> TokenStream {
     };
 }
 
+#[derive(Debug)]
+enum Repr {
+    Rust,
+    C,
+}
+
 fn inner(item: TokenStream) -> Result<TokenStream, MacroError> {
     let mut iter = item.into_iter().peekable();
 
+    let mut repr = Repr::Rust;
     loop {
         if matches!(iter.peek(), Some(TT::Ident(ident))
                 if ["pub", "pub(crate)"].contains(&ident.to_string().as_str()))
@@ -39,8 +46,28 @@ fn inner(item: TokenStream) -> Result<TokenStream, MacroError> {
         if matches!(iter.peek(), Some(TT::Punct(hashtag))
                 if hashtag.as_char() == '#')
         {
-            let _ = iter.next();
-            let _ = iter.next();
+            let _hashtag = iter.next();
+            let group = iter.next();
+            match group {
+                Some(TT::Group(group)) => {
+                    let mut iter = group.stream().into_iter();
+                    match (iter.next(), iter.next(), iter.next()) {
+                        (Some(TT::Ident(repr_ident)), Some(TT::Group(repr_group)), None)
+                            if repr_ident.to_string() == "repr" =>
+                        {
+                            let mut iter = repr_group.stream().into_iter();
+                            match (iter.next(), iter.next()) {
+                                (Some(TT::Ident(c)), None) if c.to_string() == "C" => {
+                                    repr = Repr::C; // <= the thing I want to know
+                                }
+                                _ => {}
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+                _ => {}
+            }
             continue;
         }
         break;
@@ -53,7 +80,7 @@ fn inner(item: TokenStream) -> Result<TokenStream, MacroError> {
         iter.next(),
         iter.next(),
     ) {
-        // regular old struct
+        // regular old struct or enum
         (Some(TT::Ident(s)), Some(TT::Ident(name)), Some(TT::Group(fields)), None, None) => {
             match s.to_string().as_str() {
                 "struct" => {
