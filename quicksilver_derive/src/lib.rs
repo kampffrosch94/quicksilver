@@ -139,7 +139,7 @@ impl ::quicksilver::Quicksilver for {name} {{
         generate_field(
             result,
             &field.name.unwrap_or_else(|| format!("{i}")),
-            &field.ty,
+            &field.mirror,
         );
     }
 
@@ -171,7 +171,7 @@ fn generate_field(result: &mut String, name: &str, ty: &str) {
 #[derive(Debug)]
 struct Field {
     name: Option<String>,
-    ty: String,
+    mirror: String,
 }
 
 fn parse_fields(input: TokenStream) -> Result<Vec<Field>, MacroError> {
@@ -245,21 +245,21 @@ fn parse_field(mut buffer: &[TokenTree]) -> Result<Field, MacroError> {
     match (iter.next(), iter.next(), iter.next()) {
         (Some(TT::Ident(ty)), None, None) => {
             let name = None;
-            let ty = parse_type(&buffer, &ty.to_string(), skip)?;
-            Ok(Field { name, ty })
+            let mirror = parse_mirror(&buffer, &ty.to_string(), skip)?;
+            Ok(Field { name, mirror })
         }
         (Some(TT::Ident(name)), Some(TT::Punct(colon)), Some(TT::Ident(ty)))
             if colon.as_char() == ':' =>
         {
             let name = Some(name.to_string());
             let buffer = &buffer[2..];
-            let ty = parse_type(&buffer, &ty.to_string(), skip)?;
-            Ok(Field { name, ty })
+            let mirror = parse_mirror(&buffer, &ty.to_string(), skip)?;
+            Ok(Field { name, mirror })
         }
         (Some(TT::Ident(ty)), Some(TT::Punct(stair)), Some(_)) if stair.as_char() == '<' => {
             let name = None;
-            let ty = parse_type(&buffer, &ty.to_string(), skip)?;
-            Ok(Field { name, ty })
+            let mirror = parse_mirror(&buffer, &ty.to_string(), skip)?;
+            Ok(Field { name, mirror })
         }
         _ => {
             dbg!(&buffer);
@@ -271,7 +271,7 @@ fn parse_field(mut buffer: &[TokenTree]) -> Result<Field, MacroError> {
     }
 }
 
-fn parse_type(buffer: &[TokenTree], ty: &str, skip: bool) -> Result<String, MacroError> {
+fn parse_mirror(buffer: &[TokenTree], ty: &str, skip: bool) -> Result<String, MacroError> {
     Ok(if buffer.len() == 1 {
         if skip {
             error!(
@@ -373,8 +373,8 @@ RustEnumVariant {{
         .unwrap();
         for (i, field) in v.fields.iter().enumerate() {
             let name = field.name.clone().unwrap_or_else(|| i.to_string());
-            let ty = &field.ty;
-            write!(variant_text, r#"("{name}", {ty}),"#).unwrap()
+            let mirror = &field.mirror;
+            write!(variant_text, r#"("{name}", {mirror}),"#).unwrap()
         }
         variant_text.push_str("],}, ");
     }
@@ -442,7 +442,14 @@ fn parse_rust_enum_variants(input: TokenStream) -> Result<Vec<RustEnumVariant>, 
                     fields: parse_fields(field_group.stream())?,
                 });
             }
-            _ => {}
+            (Some(other), None) => {
+                error_single!(&other, "Quicksilver can't parse this.")
+            }
+
+            (Some(other), Some(other2)) => {
+                error!(&[other, other2], "Quicksilver can't parse this.")
+            }
+            (None, Some(_)) => unreachable!(),
         }
     }
     dbg!(&r);
