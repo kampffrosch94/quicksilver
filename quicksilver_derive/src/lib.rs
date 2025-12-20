@@ -172,6 +172,7 @@ fn generate_field(result: &mut String, name: &str, ty: &str) {
 struct Field {
     name: Option<String>,
     mirror: String,
+    ty: String,
 }
 
 fn parse_fields(input: TokenStream) -> Result<Vec<Field>, MacroError> {
@@ -246,7 +247,11 @@ fn parse_field(mut buffer: &[TokenTree]) -> Result<Field, MacroError> {
         (Some(TT::Ident(ty)), None, None) => {
             let name = None;
             let mirror = parse_mirror(&buffer, &ty.to_string(), skip)?;
-            Ok(Field { name, mirror })
+            Ok(Field {
+                name,
+                mirror,
+                ty: ty.to_string(),
+            })
         }
         (Some(TT::Ident(name)), Some(TT::Punct(colon)), Some(TT::Ident(ty)))
             if colon.as_char() == ':' =>
@@ -254,12 +259,22 @@ fn parse_field(mut buffer: &[TokenTree]) -> Result<Field, MacroError> {
             let name = Some(name.to_string());
             let buffer = &buffer[2..];
             let mirror = parse_mirror(&buffer, &ty.to_string(), skip)?;
-            Ok(Field { name, mirror })
+            let ty = buffer
+                .iter()
+                .map(|it| it.to_string())
+                .collect::<Vec<_>>()
+                .join("");
+            Ok(Field { name, mirror, ty })
         }
         (Some(TT::Ident(ty)), Some(TT::Punct(stair)), Some(_)) if stair.as_char() == '<' => {
             let name = None;
             let mirror = parse_mirror(&buffer, &ty.to_string(), skip)?;
-            Ok(Field { name, mirror })
+            let ty = buffer
+                .iter()
+                .map(|it| it.to_string())
+                .collect::<Vec<_>>()
+                .join("");
+            Ok(Field { name, mirror, ty })
         }
         _ => {
             dbg!(&buffer);
@@ -357,12 +372,15 @@ impl ::quicksilver::Quicksilver for {name} {{
     Ok(result.parse().unwrap())
 }
 
-fn generate_rust_enum_impl(name: String, input: TokenStream) -> Result<TokenStream, MacroError> {
+fn generate_rust_enum_impl(
+    enum_name: String,
+    input: TokenStream,
+) -> Result<TokenStream, MacroError> {
     let result = &mut String::new();
     let variants = parse_rust_enum_variants(input)?;
     let variant_text = &mut String::new();
-    for v in variants {
-        let name = v.name;
+    for v in &variants {
+        let name = &v.name;
         write!(
             variant_text,
             r#"
@@ -379,17 +397,79 @@ RustEnumVariant {{
         variant_text.push_str("],}, ");
     }
 
+    let reflect_text = &mut String::new();
+    let reflect_ref_text = &mut String::new();
+
+    reflect_ref_text.push_str(r#"todo!()"#);
+    reflect_text.push_str(
+        r#"let enum_val: &mut Self = unsafe { &mut *(ptr as *mut Self) };
+match enum_val {
+"#,
+    );
+    // write match arms
+    for (variant_idx, v) in variants.iter().enumerate() {
+        // write match arm
+        let variant_name = &v.name;
+        write!(reflect_text, r#"Self::{variant_name} "#).unwrap();
+        // different destructuring depending on tuple struct or "normal" struct
+        let is_tuple = v
+            .fields
+            .first()
+            .map(|it| it.name.is_none())
+            .unwrap_or(false);
+        if is_tuple {
+            reflect_text.push('(');
+            for (i, _) in v.fields.iter().enumerate() {
+                write!(reflect_text, "val{i},").unwrap();
+            }
+            reflect_text.push(')');
+        } else {
+            reflect_text.push('{');
+            for field in v.fields.iter() {
+                let name = field.name.as_ref().unwrap();
+                write!(reflect_text, "{name},").unwrap();
+            }
+            reflect_text.push('}');
+        }
+        reflect_text.push_str(" => ");
+
+        write!(
+            reflect_text,
+            r#"
+RustEnumReflection {{
+                    name: "{enum_name}",
+                    variant_name: "{variant_name}",
+                    variant_idx: {variant_idx},
+                    ty: &Self::MIRROR,
+                    fields: vec!["#
+        )
+        .unwrap();
+        for (i, field) in v.fields.iter().enumerate() {
+            let name = field.name.clone().unwrap_or_else(|| format!("val{i}"));
+            let mirror = &field.mirror;
+            write!(reflect_text, r#"
+FieldReflection {{
+    name: "{name}",
+    value: unsafe {{
+        reflect_value(&raw mut *{name} as *mut u8, &{mirror})
+    }},
+}},"#).unwrap();
+        }
+        reflect_text.push_str("],},");
+    }
+    reflect_text.push_str("}");
+
     write!(
         result,
         r#"
-impl ::quicksilver::Quicksilver for {name} {{
+impl ::quicksilver::Quicksilver for {enum_name} {{
     const MIRROR: ::quicksilver::Type = ::quicksilver::Type::RustEnum(&::quicksilver::RustEnum {{
-        name: "{name}",
+        name: "{enum_name}",
         size: ::std::mem::size_of::<Self>(),
         align: ::std::mem::align_of::<Self>(),
         variants: &[{variant_text}],
-        reflect: |ptr| {{ todo!() }},
-        reflect_ref: |ptr| {{ todo!() }},
+        reflect: |ptr| {{ {reflect_text} }},
+        reflect_ref: |ptr| {{ {reflect_ref_text} }},
         write: |this, variant, fields| {{ todo!() }},
     }});
 }}

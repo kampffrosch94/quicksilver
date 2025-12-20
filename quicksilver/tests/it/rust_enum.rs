@@ -40,7 +40,7 @@ impl Quicksilver for Ability {
         reflect: |ptr| {
             let enum_val: &mut Self = unsafe { &mut *(ptr as *mut Self) };
             match enum_val {
-                Ability::DoNothing => RustEnumReflection {
+                Self::DoNothing => RustEnumReflection {
                     name: "Ability",
                     variant_name: "DoNothing",
                     variant_idx: 0,
@@ -67,7 +67,7 @@ impl Quicksilver for Ability {
                         },
                     ],
                 },
-                Ability::Shout(val0) => RustEnumReflection {
+                Ability::Shout(val0, ) => RustEnumReflection {
                     name: "Ability",
                     variant_name: "Shout",
                     variant_idx: 2,
