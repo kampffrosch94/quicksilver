@@ -5,6 +5,7 @@ use std::{alloc::Layout, collections::HashSet};
 use map::{HMVtable, HMVtableCreator};
 use option::{OptionVtable, OptionVtableCreator};
 pub use quicksilver_derive::Quicksilver;
+use reflections::{FieldReflection, RustEnumReflection, ValueReflection};
 use set::{HSVtable, HSVtableCreator};
 use vec::{VecVtable, VecVtableCreator};
 
@@ -35,6 +36,7 @@ pub enum Type {
     Option(OptionType),
     Struct(&'static Struct),
     CEnum(&'static CEnum),
+    RustEnum(&'static RustEnum),
 }
 
 impl Type {
@@ -55,6 +57,7 @@ impl Type {
             Type::HashSet(hs) => unsafe { Layout::from_size_align_unchecked(hs.size, hs.align) },
             Type::Struct(s) => unsafe { Layout::from_size_align_unchecked(s.size, s.align) },
             Type::CEnum(e) => unsafe { Layout::from_size_align_unchecked(e.size, e.align) },
+            Type::RustEnum(_) => todo!(),
             Type::Option(o) => unsafe { Layout::from_size_align_unchecked(o.size, o.align) },
         }
     }
@@ -69,6 +72,7 @@ pub struct VecType {
     pub align: usize,
 }
 
+/// Type of a HashMap
 #[derive(Debug)]
 pub struct HMType {
     pub key: &'static Type,
@@ -79,6 +83,7 @@ pub struct HMType {
     pub align: usize,
 }
 
+/// Type of a HashSet
 #[derive(Debug)]
 pub struct HSType {
     pub element: &'static Type,
@@ -118,6 +123,21 @@ pub struct CEnum {
     pub align: usize,
     pub name: &'static str,
     pub variants: &'static [(i32, &'static str)],
+}
+
+#[derive(Debug)]
+pub struct RustEnumVariant {
+    pub name: &'static str,
+    pub fields: &'static [(&'static str, Type)],
+}
+
+#[derive(Debug)]
+pub struct RustEnum {
+    pub size: usize,
+    pub align: usize,
+    pub name: &'static str,
+    pub variants: &'static [RustEnumVariant],
+    pub reflect: unsafe fn(*mut u8) -> RustEnumReflection<'static>,
 }
 
 pub trait Quicksilver {

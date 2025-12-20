@@ -109,6 +109,19 @@ pub fn value_to_json(vr: &ValueReflection) -> String {
                 ret
             }
         }
+        ValueReflection::RustEnum(renum) => {
+            let mut json_parts = Vec::new();
+            json_parts.push(format!(
+                r#""{}":"{}""#,
+                "__enum_variant", renum.variant_name
+            ));
+            for field in &renum.fields {
+                let field_name = format!("\"{}\"", field.name);
+                let field_value = value_to_json(&field.value);
+                json_parts.push(format!("{}:{}", field_name, field_value));
+            }
+            format!("{{{}}}", json_parts.join(","))
+        }
     }
 }
 
@@ -250,7 +263,6 @@ unsafe fn deserialize_field(walker: &mut JsonWalker, base: *mut u8, ty: &Type) {
             }
             walker.consume_char(']');
         },
-
         Type::HashSet(hs) => unsafe {
             (hs.vtable.new_at)(base);
             walker.consume_char('[');
@@ -262,7 +274,6 @@ unsafe fn deserialize_field(walker: &mut JsonWalker, base: *mut u8, ty: &Type) {
             }
             walker.consume_char(']');
         },
-
         Type::Option(o) => unsafe {
             (o.vtable.new_at)(base);
             walker.consume_char('[');
@@ -274,5 +285,6 @@ unsafe fn deserialize_field(walker: &mut JsonWalker, base: *mut u8, ty: &Type) {
             }
             walker.consume_char(']');
         },
+        Type::RustEnum(rust_enum) => todo!(),
     }
 }
