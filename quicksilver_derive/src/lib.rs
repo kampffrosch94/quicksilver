@@ -277,7 +277,6 @@ fn parse_field(mut buffer: &[TokenTree]) -> Result<Field, MacroError> {
             Ok(Field { name, mirror, ty })
         }
         _ => {
-            dbg!(&buffer);
             error!(
                 &[buffer[0].clone(), buffer.last().unwrap().clone()],
                 "Quicksilver can't parse this."
@@ -468,7 +467,8 @@ RustEnumReflection {{
         )
         .unwrap();
         for (i, field) in v.fields.iter().enumerate() {
-            let name = field.name.clone().unwrap_or_else(|| format!("val{i}"));
+            let var_name = field.name.clone().unwrap_or_else(|| format!("val{i}"));
+            let name = field.name.clone().unwrap_or_else(|| format!("{i}"));
             let mirror = &field.mirror;
             write!(
                 reflect_text,
@@ -476,7 +476,7 @@ RustEnumReflection {{
 FieldReflection {{
     name: "{name}",
     value: unsafe {{
-        reflect_value(&raw mut *{name} as *mut u8, &{mirror})
+        reflect_value(&raw mut *{var_name} as *mut u8, &{mirror})
     }},
 }},"#
             )
@@ -487,7 +487,7 @@ FieldReflection {{
 FieldReflection {{
     name: "{name}",
     value: unsafe {{
-        reflect_value_ref(&raw const *{name} as *const u8, &{mirror})
+        reflect_value_ref(&raw const *{var_name} as *const u8, &{mirror})
     }},
 }},"#
             )
@@ -602,7 +602,6 @@ struct RustEnumVariant {
 }
 
 fn parse_rust_enum_variants(input: TokenStream) -> Result<Vec<RustEnumVariant>, MacroError> {
-    dbg!(&input);
     let mut r = Vec::new();
 
     let mut iter = input.into_iter();
@@ -647,6 +646,5 @@ fn parse_rust_enum_variants(input: TokenStream) -> Result<Vec<RustEnumVariant>, 
             (None, Some(_)) => unreachable!(),
         }
     }
-    dbg!(&r);
     Ok(r)
 }

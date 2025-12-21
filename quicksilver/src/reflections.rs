@@ -1,7 +1,6 @@
 use crate::option::OptionReflection;
 use crate::set::HSReflection;
 use crate::{Quicksilver, Struct, Type, map::HMReflection, vec::VecReflection};
-use crate::{RustEnum, RustEnumVariant};
 use std::fmt::Debug;
 
 use std::ops::Deref;
