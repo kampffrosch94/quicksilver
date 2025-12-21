@@ -18,6 +18,7 @@ struct MyData {
 }
 
 #[derive(Debug, Quicksilver)]
+#[expect(unused)]
 pub struct Player {
     pub pulse: f32,
     pub last_action: i32,

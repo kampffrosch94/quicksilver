@@ -18,6 +18,7 @@ struct VecHolder {
 }
 
 #[derive(Debug, PartialEq, Quicksilver)]
+#[expect(unused)]
 struct TuplePoint2f(f32, f32);
 
 #[test]

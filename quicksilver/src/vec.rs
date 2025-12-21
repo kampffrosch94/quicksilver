@@ -109,14 +109,14 @@ impl VecReflection<'_> {
         unsafe { (self.vtable.get_len)(self.ptr) }
     }
 
-    pub fn get(&mut self, index: usize) -> ValueReflection {
+    pub fn get(&mut self, index: usize) -> ValueReflection<'_> {
         unsafe {
             let ptr = (self.vtable.get_elem)(self.ptr, index);
             reflect_value(ptr, &self.element)
         }
     }
 
-    pub fn get_ref(&self, index: usize) -> ValueReflection {
+    pub fn get_ref(&self, index: usize) -> ValueReflection<'_> {
         unsafe {
             let ptr = (self.vtable.get_elem_ref)(self.ptr, index);
             reflect_value_ref(ptr, &self.element)

@@ -28,7 +28,7 @@ pub unsafe fn reflect_struct_ref(base: *const u8, mirror: &Struct) -> StructRefl
     }
 }
 
-pub unsafe fn reflect_value_ref(ptr: *const u8, ty: &Type) -> ValueReflection {
+pub unsafe fn reflect_value_ref(ptr: *const u8, ty: &Type) -> ValueReflection<'_> {
     match ty {
         Type::I32 => {
             let value = unsafe { &*(ptr as *const i32) };

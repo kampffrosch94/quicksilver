@@ -76,7 +76,7 @@ pub unsafe fn reflect_struct(base: *mut u8, mirror: &Struct) -> StructReflection
     }
 }
 
-pub unsafe fn reflect_value(ptr: *mut u8, ty: &Type) -> ValueReflection {
+pub unsafe fn reflect_value(ptr: *mut u8, ty: &Type) -> ValueReflection<'_> {
     match ty {
         Type::I32 => {
             let value = unsafe { &mut *(ptr as *mut i32) };
