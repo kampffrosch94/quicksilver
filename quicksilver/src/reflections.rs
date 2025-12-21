@@ -24,6 +24,7 @@ pub enum ValueReflection<'a> {
     HashMap(Box<HMReflection<'a>>),
     HashSet(Box<HSReflection<'a>>),
     Option(Box<OptionReflection<'a>>),
+    RustEnum(RustEnumReflection<'a>),
 }
 
 #[repr(C)]
@@ -43,6 +44,15 @@ pub struct CEnumReflection<'a> {
     pub name: &'a str,
     pub val: RefOrMut<'a, i32>,
     pub variants: &'a [(i32, &'a str)],
+}
+
+#[repr(C)]
+pub struct RustEnumReflection<'a> {
+    pub name: &'a str,
+    pub variant_name: &'a str,
+    pub variant_idx: usize,
+    pub ty: &'a Type,
+    pub fields: Vec<FieldReflection<'a>>,
 }
 
 pub fn reflect<T: Quicksilver>(val: &mut T) -> ValueReflection<'_> {
@@ -142,6 +152,7 @@ pub unsafe fn reflect_value(ptr: *mut u8, ty: &Type) -> ValueReflection {
             vtable: &o.vtable,
             skip: o.skip,
         })),
+        Type::RustEnum(re_mirror) => ValueReflection::RustEnum(unsafe { (re_mirror.reflect)(ptr) }),
     }
 }
 

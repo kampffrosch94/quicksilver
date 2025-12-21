@@ -25,9 +25,16 @@ pub fn derive_quicksilver(input: TokenStream) -> TokenStream {
     };
 }
 
+#[derive(Debug)]
+enum Repr {
+    Rust,
+    C,
+}
+
 fn inner(item: TokenStream) -> Result<TokenStream, MacroError> {
     let mut iter = item.into_iter().peekable();
 
+    let mut repr = Repr::Rust;
     loop {
         if matches!(iter.peek(), Some(TT::Ident(ident))
                 if ["pub", "pub(crate)"].contains(&ident.to_string().as_str()))
@@ -39,8 +46,28 @@ fn inner(item: TokenStream) -> Result<TokenStream, MacroError> {
         if matches!(iter.peek(), Some(TT::Punct(hashtag))
                 if hashtag.as_char() == '#')
         {
-            let _ = iter.next();
-            let _ = iter.next();
+            let _hashtag = iter.next();
+            let group = iter.next();
+            match group {
+                Some(TT::Group(group)) => {
+                    let mut iter = group.stream().into_iter();
+                    match (iter.next(), iter.next(), iter.next()) {
+                        (Some(TT::Ident(repr_ident)), Some(TT::Group(repr_group)), None)
+                            if repr_ident.to_string() == "repr" =>
+                        {
+                            let mut iter = repr_group.stream().into_iter();
+                            match (iter.next(), iter.next()) {
+                                (Some(TT::Ident(c)), None) if c.to_string() == "C" => {
+                                    repr = Repr::C; // <= the thing I want to know
+                                }
+                                _ => {}
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+                _ => {}
+            }
             continue;
         }
         break;
@@ -53,21 +80,28 @@ fn inner(item: TokenStream) -> Result<TokenStream, MacroError> {
         iter.next(),
         iter.next(),
     ) {
-        // regular old struct
-        (Some(TT::Ident(s)), Some(TT::Ident(name)), Some(TT::Group(fields)), None, None) => {
-            match s.to_string().as_str() {
-                "struct" => {
-                    let name = name.to_string();
-                    let fields = parse_fields(fields.stream())?;
-                    generate_impl(name, fields)
-                }
-                "enum" => {
-                    let name = name.to_string();
-                    generate_enum_impl(name, fields.stream())
-                }
-                other @ _ => panic!("Unknown keyword {other:?}"),
+        // regular old struct or enum
+        (
+            Some(ref keyword @ TT::Ident(ref s)),
+            Some(TT::Ident(name)),
+            Some(TT::Group(fields)),
+            None,
+            None,
+        ) => match s.to_string().as_str() {
+            "struct" => {
+                let name = name.to_string();
+                let fields = parse_fields(fields.stream())?;
+                generate_struct_impl(name, fields)
             }
-        }
+            "enum" => {
+                let name = name.to_string();
+                match repr {
+                    Repr::Rust => generate_rust_enum_impl(name, fields.stream()),
+                    Repr::C => generate_c_enum_impl(name, fields.stream()),
+                }
+            }
+            other => error_single!(keyword, "Unknown keyword {other:?}"),
+        },
         // tuple struct
         (
             Some(TT::Ident(s)),
@@ -79,7 +113,7 @@ fn inner(item: TokenStream) -> Result<TokenStream, MacroError> {
             assert_eq!("struct", s.to_string());
             let name = name.to_string();
             let fields = parse_fields(fields.stream())?;
-            generate_impl(name, fields)
+            generate_struct_impl(name, fields)
         }
         other @ _ => {
             panic!("Unsupported struct shape.\n{other:?}")
@@ -87,7 +121,7 @@ fn inner(item: TokenStream) -> Result<TokenStream, MacroError> {
     }
 }
 
-fn generate_impl(name: String, fields: Vec<Field>) -> Result<TokenStream, MacroError> {
+fn generate_struct_impl(name: String, fields: Vec<Field>) -> Result<TokenStream, MacroError> {
     let result = &mut String::new();
     write!(
         result,
@@ -105,7 +139,7 @@ impl ::quicksilver::Quicksilver for {name} {{
         generate_field(
             result,
             &field.name.unwrap_or_else(|| format!("{i}")),
-            &field.ty,
+            &field.mirror,
         );
     }
 
@@ -134,8 +168,10 @@ fn generate_field(result: &mut String, name: &str, ty: &str) {
     .unwrap()
 }
 
+#[derive(Debug)]
 struct Field {
     name: Option<String>,
+    mirror: String,
     ty: String,
 }
 
@@ -210,24 +246,37 @@ fn parse_field(mut buffer: &[TokenTree]) -> Result<Field, MacroError> {
     match (iter.next(), iter.next(), iter.next()) {
         (Some(TT::Ident(ty)), None, None) => {
             let name = None;
-            let ty = parse_type(&buffer, &ty.to_string(), skip)?;
-            Ok(Field { name, ty })
+            let mirror = parse_mirror(&buffer, &ty.to_string(), skip)?;
+            Ok(Field {
+                name,
+                mirror,
+                ty: ty.to_string(),
+            })
         }
         (Some(TT::Ident(name)), Some(TT::Punct(colon)), Some(TT::Ident(ty)))
             if colon.as_char() == ':' =>
         {
             let name = Some(name.to_string());
             let buffer = &buffer[2..];
-            let ty = parse_type(&buffer, &ty.to_string(), skip)?;
-            Ok(Field { name, ty })
+            let mirror = parse_mirror(&buffer, &ty.to_string(), skip)?;
+            let ty = buffer
+                .iter()
+                .map(|it| it.to_string())
+                .collect::<Vec<_>>()
+                .join("");
+            Ok(Field { name, mirror, ty })
         }
         (Some(TT::Ident(ty)), Some(TT::Punct(stair)), Some(_)) if stair.as_char() == '<' => {
             let name = None;
-            let ty = parse_type(&buffer, &ty.to_string(), skip)?;
-            Ok(Field { name, ty })
+            let mirror = parse_mirror(&buffer, &ty.to_string(), skip)?;
+            let ty = buffer
+                .iter()
+                .map(|it| it.to_string())
+                .collect::<Vec<_>>()
+                .join("");
+            Ok(Field { name, mirror, ty })
         }
         _ => {
-            dbg!(&buffer);
             error!(
                 &[buffer[0].clone(), buffer.last().unwrap().clone()],
                 "Quicksilver can't parse this."
@@ -236,7 +285,7 @@ fn parse_field(mut buffer: &[TokenTree]) -> Result<Field, MacroError> {
     }
 }
 
-fn parse_type(buffer: &[TokenTree], ty: &str, skip: bool) -> Result<String, MacroError> {
+fn parse_mirror(buffer: &[TokenTree], ty: &str, skip: bool) -> Result<String, MacroError> {
     Ok(if buffer.len() == 1 {
         if skip {
             error!(
@@ -272,7 +321,7 @@ fn chunked<I>(a: impl IntoIterator<Item = I>, chunk_size: usize) -> impl Iterato
     })
 }
 
-fn generate_enum_impl(name: String, input: TokenStream) -> Result<TokenStream, MacroError> {
+fn generate_c_enum_impl(name: String, input: TokenStream) -> Result<TokenStream, MacroError> {
     let result = &mut String::new();
     write!(
         result,
@@ -320,4 +369,282 @@ impl ::quicksilver::Quicksilver for {name} {{
     )
     .unwrap();
     Ok(result.parse().unwrap())
+}
+
+fn generate_rust_enum_impl(
+    enum_name: String,
+    input: TokenStream,
+) -> Result<TokenStream, MacroError> {
+    let result = &mut String::new();
+    let variants = parse_rust_enum_variants(input)?;
+    let variant_text = &mut String::new();
+    for v in &variants {
+        let name = &v.name;
+        write!(
+            variant_text,
+            r#"
+RustEnumVariant {{
+    name: "{name}",
+    fields: &["#
+        )
+        .unwrap();
+        for (i, field) in v.fields.iter().enumerate() {
+            let name = field.name.clone().unwrap_or_else(|| i.to_string());
+            let mirror = &field.mirror;
+            write!(variant_text, r#"("{name}", {mirror}),"#).unwrap()
+        }
+        variant_text.push_str("],}, ");
+    }
+
+    let reflect_text = &mut String::new();
+    let reflect_ref_text = &mut String::new();
+
+    reflect_text.push_str(
+        r#"let enum_val: &mut Self = unsafe { &mut *(ptr as *mut Self) };
+match enum_val {
+"#,
+    );
+    reflect_ref_text.push_str(
+        r#"let enum_val: &Self = unsafe { &*(ptr as *const Self) };
+match enum_val {
+"#,
+    );
+    // write match arms
+    for (variant_idx, v) in variants.iter().enumerate() {
+        // write match arm
+        let variant_name = &v.name;
+        write!(reflect_text, r#"Self::{variant_name} "#).unwrap();
+        write!(reflect_ref_text, r#"Self::{variant_name} "#).unwrap();
+        // different destructuring depending on tuple struct or "normal" struct
+        let is_tuple = v
+            .fields
+            .first()
+            .map(|it| it.name.is_none())
+            .unwrap_or(false);
+        if is_tuple {
+            reflect_text.push('(');
+            reflect_ref_text.push('(');
+            for (i, _) in v.fields.iter().enumerate() {
+                write!(reflect_text, "val{i},").unwrap();
+                write!(reflect_ref_text, "val{i},").unwrap();
+            }
+            reflect_text.push(')');
+            reflect_ref_text.push(')');
+        } else {
+            reflect_text.push('{');
+            reflect_ref_text.push('{');
+            for field in v.fields.iter() {
+                let name = field.name.as_ref().unwrap();
+                write!(reflect_text, "{name},").unwrap();
+                write!(reflect_ref_text, "{name},").unwrap();
+            }
+            reflect_text.push('}');
+            reflect_ref_text.push('}');
+        }
+        reflect_text.push_str(" => ");
+        reflect_ref_text.push_str(" => ");
+
+        write!(
+            reflect_text,
+            r#"
+RustEnumReflection {{
+                    name: "{enum_name}",
+                    variant_name: "{variant_name}",
+                    variant_idx: {variant_idx},
+                    ty: &Self::MIRROR,
+                    fields: vec!["#
+        )
+        .unwrap();
+        write!(
+            reflect_ref_text,
+            r#"
+RustEnumReflection {{
+                    name: "{enum_name}",
+                    variant_name: "{variant_name}",
+                    variant_idx: {variant_idx},
+                    ty: &Self::MIRROR,
+                    fields: vec!["#
+        )
+        .unwrap();
+        for (i, field) in v.fields.iter().enumerate() {
+            let var_name = field.name.clone().unwrap_or_else(|| format!("val{i}"));
+            let name = field.name.clone().unwrap_or_else(|| format!("{i}"));
+            let mirror = &field.mirror;
+            write!(
+                reflect_text,
+                r#"
+FieldReflection {{
+    name: "{name}",
+    value: unsafe {{
+        ::quicksilver::reflections::reflect_value(&raw mut *{var_name} as *mut u8, &{mirror})
+    }},
+}},"#
+            )
+            .unwrap();
+            write!(
+                reflect_ref_text,
+                r#"
+FieldReflection {{
+    name: "{name}",
+    value: unsafe {{
+        ::quicksilver::reflections_ref::reflect_value_ref(&raw const *{var_name} as *const u8, &{mirror})
+    }},
+}},"#
+            )
+            .unwrap();
+        }
+        reflect_text.push_str("],},");
+        reflect_ref_text.push_str("],},");
+    }
+    reflect_text.push_str("}");
+    reflect_ref_text.push_str("}");
+
+    let write_text = &mut String::new();
+    write_text.push_str(
+        r#"let this = this as *mut Self;
+match (variant, fields) {"#,
+    );
+
+    for (variant_idx, variant) in variants.iter().enumerate() {
+        write!(write_text, r#"({variant_idx}, ["#).unwrap();
+        for (i, field) in variant.fields.iter().enumerate() {
+            if let Some(ref name) = field.name {
+                write_text.push_str(name);
+                write_text.push(',');
+            } else {
+                write!(write_text, "val{i},").unwrap()
+            }
+        }
+        write_text.push_str("]) => {");
+        for (i, field) in variant.fields.iter().enumerate() {
+            let ty = &field.ty;
+            if let Some(ref name) = field.name {
+                write!(
+                    write_text,
+                    "let {name} = unsafe {{ Box::from_raw(*{name} as *mut {ty}) }};\n"
+                )
+                .unwrap()
+            } else {
+                write!(
+                    write_text,
+                    "let val{i} = unsafe {{ Box::from_raw(*val{i} as *mut {ty}) }};\n"
+                )
+                .unwrap()
+            }
+        }
+
+        let variant_name = &variant.name;
+        write!(
+            write_text,
+            "unsafe {{::std::ptr::write(this, Self::{variant_name} "
+        )
+        .unwrap();
+
+        let is_tuple = variant
+            .fields
+            .first()
+            .map(|it| it.name.is_none())
+            .unwrap_or(false);
+
+        if is_tuple {
+            write_text.push('(');
+            for (i, _field) in variant.fields.iter().enumerate() {
+                write!(write_text, "*val{i},").unwrap()
+            }
+            write_text.push(')');
+        } else {
+            write_text.push('{');
+            for field in variant.fields.iter() {
+                let name = field.name.as_ref().expect("field can't be None here");
+                write!(write_text, "{name}: *{name},").unwrap()
+            }
+            write_text.push('}');
+        }
+
+        write_text.push_str(",)};");
+
+        write_text.push_str("}");
+    }
+
+    write!(
+        write_text,
+        r#"
+_ => unreachable!("Illegal operation: setting enum variant {{variant}} on {enum_name}"),
+}};"#
+    )
+    .unwrap();
+
+    write!(
+        result,
+        r#"
+impl ::quicksilver::Quicksilver for {enum_name} {{
+    const MIRROR: ::quicksilver::Type = ::quicksilver::Type::RustEnum(&::quicksilver::RustEnum {{
+        name: "{enum_name}",
+        size: ::std::mem::size_of::<Self>(),
+        align: ::std::mem::align_of::<Self>(),
+        variants: &[{variant_text}],
+        reflect: |ptr| {{ {reflect_text} }},
+        reflect_ref: |ptr| {{ {reflect_ref_text} }},
+        write: |this, variant, fields| {{ {write_text} }},
+    }});
+}}
+"#
+    )
+    .unwrap();
+
+    Ok(result.parse().unwrap())
+}
+
+#[derive(Debug)]
+struct RustEnumVariant {
+    name: String,
+    fields: Vec<Field>,
+}
+
+fn parse_rust_enum_variants(input: TokenStream) -> Result<Vec<RustEnumVariant>, MacroError> {
+    let mut r = Vec::new();
+
+    let mut iter = input.into_iter();
+    loop {
+        match (iter.next(), iter.next()) {
+            (None, None) => {
+                break;
+            }
+            (Some(TT::Ident(name)), Some(TT::Punct(comma))) if comma.as_char() == ',' => {
+                r.push(RustEnumVariant {
+                    name: name.to_string(),
+                    fields: Vec::new(),
+                });
+            }
+            (Some(TT::Ident(name)), None) => {
+                r.push(RustEnumVariant {
+                    name: name.to_string(),
+                    fields: Vec::new(),
+                });
+            }
+            (Some(TT::Ident(name)), Some(TT::Group(field_group))) => {
+                // consume next comma if any
+                match iter.next() {
+                    None => {}
+                    Some(TT::Punct(comma)) if comma.as_char() == ',' => {}
+                    Some(unexpected) => {
+                        error_single!(&unexpected, "Quicksilver can't parse this.")
+                    }
+                }
+                r.push(RustEnumVariant {
+                    name: name.to_string(),
+                    fields: parse_fields(field_group.stream())?,
+                });
+            }
+            (Some(other), None) => {
+                error_single!(&other, "Quicksilver can't parse this.")
+            }
+
+            (Some(other), Some(other2)) => {
+                error!(&[other, other2], "Quicksilver can't parse this.")
+            }
+            (None, Some(_)) => unreachable!(),
+        }
+    }
+    Ok(r)
 }

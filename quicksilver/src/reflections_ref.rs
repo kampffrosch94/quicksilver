@@ -104,5 +104,6 @@ pub unsafe fn reflect_value_ref(ptr: *const u8, ty: &Type) -> ValueReflection {
             vtable: &o.vtable,
             skip: o.skip,
         })),
+        Type::RustEnum(renum) => ValueReflection::RustEnum(unsafe { (renum.reflect_ref)(ptr) }),
     }
 }

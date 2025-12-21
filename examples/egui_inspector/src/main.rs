@@ -36,8 +36,18 @@ enum Occupation {
 }
 
 #[derive(Debug, Quicksilver)]
+#[allow(unused)]
+enum Ideology {
+    None,
+    CatPerson(usize),
+    DogPerson(usize),
+    CatDogPerson { cats: usize, dogs: usize },
+}
+
+#[derive(Debug, Quicksilver)]
 struct Person {
     name: String,
+    ideology: Ideology,
     job: Occupation,
     alive: bool,
     age: u32,
@@ -78,6 +88,7 @@ impl Default for Person {
             .collect();
         Self {
             name: "Arthur".to_owned(),
+            ideology: Ideology::CatDogPerson { cats: 5, dogs: 2 },
             age: 42,
             alive: true,
             houses,
@@ -125,7 +136,7 @@ impl eframe::App for Person {
     }
 }
 
-fn draw_reflection(ui: &mut egui::Ui, r: &mut StructReflection) {
+fn draw_struct_reflection(ui: &mut egui::Ui, r: &mut StructReflection) {
     ui.heading(r.name);
     egui::Grid::new(next_id())
         .min_col_width(50.)
@@ -140,8 +151,38 @@ fn draw_reflection(ui: &mut egui::Ui, r: &mut StructReflection) {
         });
 }
 
-fn draw_reflection_ref(ui: &mut egui::Ui, r: &StructReflection) {
+fn draw_enum_reflection(ui: &mut egui::Ui, r: &mut RustEnumReflection) {
+    ui.heading(format!("{}::{}", r.name, r.variant_name));
+    egui::Grid::new(next_id())
+        .min_col_width(50.)
+        .num_columns(2)
+        .striped(true)
+        .show(ui, |ui| {
+            for field in &mut r.fields {
+                ui.label(field.name);
+                draw_value(ui, &mut field.value);
+                ui.end_row();
+            }
+        });
+}
+
+fn draw_struct_reflection_ref(ui: &mut egui::Ui, r: &StructReflection) {
     ui.heading(r.name);
+    egui::Grid::new(next_id())
+        .min_col_width(50.)
+        .num_columns(2)
+        .striped(true)
+        .show(ui, |ui| {
+            for field in &r.fields {
+                ui.label(field.name);
+                draw_value_ref(ui, &field.value);
+                ui.end_row();
+            }
+        });
+}
+
+fn draw_enum_reflection_ref(ui: &mut egui::Ui, r: &RustEnumReflection) {
+    ui.heading(format!("{}::{}", r.name, r.variant_name));
     egui::Grid::new(next_id())
         .min_col_width(50.)
         .num_columns(2)
@@ -158,7 +199,7 @@ fn draw_reflection_ref(ui: &mut egui::Ui, r: &StructReflection) {
 fn draw_numeric<Num: emath::Numeric>(ui: &mut egui::Ui, value: &mut RefOrMut<Num>) {
     match value {
         RefOrMut::Ref(_val) => {
-            todo!();
+            unreachable!();
         }
         RefOrMut::Mut(val) => {
             ui.add(egui::DragValue::new(*val));
@@ -200,7 +241,12 @@ fn draw_value(ui: &mut egui::Ui, value: &mut ValueReflection) {
         }
         ValueReflection::Struct(s) => {
             ui.vertical(|ui| {
-                draw_reflection(ui, s);
+                draw_struct_reflection(ui, s);
+            });
+        }
+        ValueReflection::RustEnum(r) => {
+            ui.vertical(|ui| {
+                draw_enum_reflection(ui, r);
             });
         }
         ValueReflection::Vec(vec) => {
@@ -280,15 +326,21 @@ fn draw_value_ref(ui: &mut egui::Ui, value: &ValueReflection) {
         ValueReflection::USize(it) => {
             draw_numeric_ref(ui, it);
         }
-        ValueReflection::Bool(_it) => {
-            todo!();
+        ValueReflection::Bool(it) => {
+            let mut copy: bool = **it;
+            ui.add_enabled(false, egui::Checkbox::new(&mut copy, ""));
         }
         ValueReflection::String(s) => {
             ui.label(&**s);
         }
         ValueReflection::Struct(s) => {
             ui.vertical(|ui| {
-                draw_reflection_ref(ui, s);
+                draw_struct_reflection_ref(ui, s);
+            });
+        }
+        ValueReflection::RustEnum(r) => {
+            ui.vertical(|ui| {
+                draw_enum_reflection_ref(ui, r);
             });
         }
         ValueReflection::Vec(vec) => {
@@ -311,7 +363,6 @@ fn draw_value_ref(ui: &mut egui::Ui, value: &ValueReflection) {
                     }
                 });
         }
-
         ValueReflection::HashMap(hmreflection) => {
             egui::Grid::new(next_id())
                 .min_col_width(50.)
@@ -353,7 +404,7 @@ fn draw_numeric_ref<Num: emath::Numeric + std::fmt::Display>(
             ui.label(&format!("{}", *val));
         }
         RefOrMut::Mut(_val) => {
-            todo!();
+            unreachable!();
         }
     }
 }
