@@ -1,8 +1,8 @@
 use quicksilver::Quicksilver;
 use quicksilver::RustEnumVariant;
 use quicksilver::json::from_json;
-use quicksilver::reflections::{FieldReflection, RustEnumReflection, reflect, reflect_value};
-use quicksilver::reflections_ref::{reflect_ref, reflect_value_ref};
+use quicksilver::reflections::{FieldReflection, RustEnumReflection, reflect};
+use quicksilver::reflections_ref::reflect_ref;
 
 #[allow(unused)]
 #[derive(Debug, PartialEq, Quicksilver)]

@@ -199,7 +199,7 @@ fn draw_enum_reflection_ref(ui: &mut egui::Ui, r: &RustEnumReflection) {
 fn draw_numeric<Num: emath::Numeric>(ui: &mut egui::Ui, value: &mut RefOrMut<Num>) {
     match value {
         RefOrMut::Ref(_val) => {
-            todo!();
+            unreachable!();
         }
         RefOrMut::Mut(val) => {
             ui.add(egui::DragValue::new(*val));
@@ -404,7 +404,7 @@ fn draw_numeric_ref<Num: emath::Numeric + std::fmt::Display>(
             ui.label(&format!("{}", *val));
         }
         RefOrMut::Mut(_val) => {
-            todo!();
+            unreachable!();
         }
     }
 }

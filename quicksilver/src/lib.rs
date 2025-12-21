@@ -57,7 +57,7 @@ impl Type {
             Type::HashSet(hs) => unsafe { Layout::from_size_align_unchecked(hs.size, hs.align) },
             Type::Struct(s) => unsafe { Layout::from_size_align_unchecked(s.size, s.align) },
             Type::CEnum(e) => unsafe { Layout::from_size_align_unchecked(e.size, e.align) },
-            Type::RustEnum(_) => todo!(),
+            Type::RustEnum(re) => unsafe { Layout::from_size_align_unchecked(re.size, re.align) },
             Type::Option(o) => unsafe { Layout::from_size_align_unchecked(o.size, o.align) },
         }
     }
