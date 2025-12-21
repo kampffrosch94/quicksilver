@@ -383,7 +383,7 @@ fn generate_rust_enum_impl(
         write!(
             variant_text,
             r#"
-RustEnumVariant {{
+::quicksilver::RustEnumVariant {{
     name: "{name}",
     fields: &["#
         )
@@ -447,7 +447,7 @@ match enum_val {
         write!(
             reflect_text,
             r#"
-RustEnumReflection {{
+::quicksilver::reflections::RustEnumReflection {{
                     name: "{enum_name}",
                     variant_name: "{variant_name}",
                     variant_idx: {variant_idx},
@@ -458,7 +458,7 @@ RustEnumReflection {{
         write!(
             reflect_ref_text,
             r#"
-RustEnumReflection {{
+::quicksilver::reflections::RustEnumReflection {{
                     name: "{enum_name}",
                     variant_name: "{variant_name}",
                     variant_idx: {variant_idx},
@@ -473,7 +473,7 @@ RustEnumReflection {{
             write!(
                 reflect_text,
                 r#"
-FieldReflection {{
+::quicksilver::reflections::FieldReflection {{
     name: "{name}",
     value: unsafe {{
         ::quicksilver::reflections::reflect_value(&raw mut *{var_name} as *mut u8, &{mirror})
@@ -484,7 +484,7 @@ FieldReflection {{
             write!(
                 reflect_ref_text,
                 r#"
-FieldReflection {{
+::quicksilver::reflections::FieldReflection {{
     name: "{name}",
     value: unsafe {{
         ::quicksilver::reflections_ref::reflect_value_ref(&raw const *{var_name} as *const u8, &{mirror})
