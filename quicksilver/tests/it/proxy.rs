@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use quicksilver::Quicksilver;
+use quicksilver::{Quicksilver, json::from_json, reflections_ref::reflect_ref};
 
 #[derive(PartialEq, Debug)]
 struct Entity {
@@ -44,8 +44,85 @@ struct Container {
 
 #[test]
 fn subst_roundtrip() {
+    let mut val = Container {
+        leader: Entity {
+            id: 1,
+            generation: 1,
+        },
+        followers: vec![
+            Entity {
+                id: 2,
+                generation: 1,
+            },
+            Entity {
+                id: 3,
+                generation: 701,
+            },
+            Entity {
+                id: 4,
+                generation: 1,
+            },
+        ],
+        mappings: vec![(
+            23,
+            Entity {
+                id: 23,
+                generation: 12,
+            },
+        )]
+        .into_iter()
+        .collect(),
+    };
+    let s = reflect_ref(&mut val).to_json();
+    println!("{}", &s);
+    let val2 = from_json::<Container>(&s);
+    dbg!(&val2);
+    assert_eq!(val, val2);
+}
+
+#[derive(PartialEq, Debug, Quicksilver)]
+enum ContainerEnum {
+    One(#[quicksilver(proxy(Entity, EntityWrapper))] Entity),
+    More {
+        #[quicksilver(proxy(Entity, EntityWrapper))]
+        followers: Vec<Entity>,
+    },
 }
 
 #[test]
-fn subst_roundtrip_enum() {
+fn subst_roundtrip_enum_one() {
+    let mut val = ContainerEnum::One(Entity {
+        id: 1,
+        generation: 1,
+    });
+    let s = reflect_ref(&mut val).to_json();
+    println!("{}", &s);
+    let val2 = from_json::<ContainerEnum>(&s);
+    dbg!(&val2);
+    assert_eq!(val, val2);
+}
+
+#[test]
+fn subst_roundtrip_enum_more() {
+    let mut val = ContainerEnum::More {
+        followers: vec![
+            Entity {
+                id: 2,
+                generation: 1,
+            },
+            Entity {
+                id: 3,
+                generation: 701,
+            },
+            Entity {
+                id: 4,
+                generation: 1,
+            },
+        ],
+    };
+    let s = reflect_ref(&mut val).to_json();
+    println!("{}", &s);
+    let val2 = from_json::<ContainerEnum>(&s);
+    dbg!(&val2);
+    assert_eq!(val, val2);
 }

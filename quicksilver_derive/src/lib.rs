@@ -231,7 +231,7 @@ fn parse_field(mut buffer: &[TokenTree]) -> Result<Field, MacroError> {
                     let TT::Group(group) = group_tt else {
                         error_single!(group_tt, "Expected TokenTree::Group.")
                     };
-                    dbg!(&group);
+                    // dbg!(&group);
                     let mut it = group.stream().into_iter();
                     match (it.next(), it.next()) {
                         (Some(TT::Ident(s)), None) if s.to_string() == "skip" => {
