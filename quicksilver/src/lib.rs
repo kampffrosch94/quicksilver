@@ -30,6 +30,7 @@ pub enum Type {
     USize,
     Bool,
     String,
+    Box(BoxType),
     Vec(VecType),
     HashMap(HMType),
     HashSet(HSType),
@@ -52,6 +53,7 @@ impl Type {
             Type::USize => Layout::new::<usize>(),
             Type::Bool => Layout::new::<bool>(),
             Type::String => Layout::new::<String>(),
+            Type::Box(b) => unsafe { Layout::from_size_align_unchecked(b.size, b.align) },
             Type::Vec(v) => unsafe { Layout::from_size_align_unchecked(v.size, v.align) },
             Type::HashMap(hm) => unsafe { Layout::from_size_align_unchecked(hm.size, hm.align) },
             Type::HashSet(hs) => unsafe { Layout::from_size_align_unchecked(hs.size, hs.align) },
@@ -61,6 +63,16 @@ impl Type {
             Type::Option(o) => unsafe { Layout::from_size_align_unchecked(o.size, o.align) },
         }
     }
+}
+
+#[derive(Debug)]
+pub struct BoxType {
+    pub inner: &'static Type,
+    pub size: usize,
+    pub align: usize,
+    pub box_up: unsafe fn(dest: *mut u8, inner: *mut u8),
+    pub get: unsafe fn(ptr: *mut u8) -> *mut u8,
+    pub get_ref: unsafe fn(ptr: *const u8) -> *const u8,
 }
 
 #[derive(Debug)]
@@ -165,6 +177,31 @@ impl_reflectable!(f64, Type::F64);
 impl_reflectable!(usize, Type::USize);
 impl_reflectable!(isize, Type::ISize);
 impl_reflectable!(String, Type::String);
+
+impl<T> Quicksilver for Box<T>
+where
+    T: Quicksilver,
+{
+    const MIRROR: Type = Type::Box(BoxType {
+        inner: &T::MIRROR,
+        size: size_of::<Self>(),
+        align: align_of::<Self>(),
+        box_up: |dest, inner| unsafe {
+            let wrapped = Box::from_raw(inner as *mut T);
+            std::ptr::write(dest as *mut Self, wrapped);
+        },
+        get: |this| unsafe {
+            let this = &mut *(this as *mut Self);
+            let inner: *mut T = &mut **this;
+            inner as *mut u8
+        },
+        get_ref: |this| unsafe {
+            let this = &*(this as *const Self);
+            let inner: *const T = &**this;
+            inner as *const u8
+        },
+    });
+}
 
 impl<T> Quicksilver for Vec<T>
 where

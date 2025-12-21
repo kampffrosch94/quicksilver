@@ -12,7 +12,7 @@ struct Point {
 #[derive(Debug, PartialEq, Quicksilver)]
 struct VecHolder {
     name: String,
-    age: i32,
+    age: Box<i32>,
     alive: bool,
     values: Vec<Point>,
 }
@@ -25,7 +25,7 @@ struct TuplePoint2f(f32, f32);
 fn vec_roundtrip() {
     let val = VecHolder {
         name: "Kampffrosch".to_string(),
-        age: 30,
+        age: Box::new(31),
         alive: true,
         values: vec![
             Point { x: 1, y: 2 },

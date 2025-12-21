@@ -2,7 +2,9 @@ use crate::{
     Quicksilver, Struct, Type,
     map::HMReflection,
     option::OptionReflection,
-    reflections::{CEnumReflection, FieldReflection, StructReflection, ValueReflection},
+    reflections::{
+        BoxReflection, CEnumReflection, FieldReflection, StructReflection, ValueReflection,
+    },
     set::HSReflection,
     vec::VecReflection,
 };
@@ -105,5 +107,11 @@ pub unsafe fn reflect_value_ref(ptr: *const u8, ty: &Type) -> ValueReflection<'_
             skip: o.skip,
         })),
         Type::RustEnum(renum) => ValueReflection::RustEnum(unsafe { (renum.reflect_ref)(ptr) }),
+        Type::Box(box_mirror) => unsafe {
+            let inner_ptr = (box_mirror.get_ref)(ptr);
+            ValueReflection::Box(Box::new(BoxReflection {
+                inner: reflect_value_ref(inner_ptr, box_mirror.inner),
+            }))
+        },
     }
 }

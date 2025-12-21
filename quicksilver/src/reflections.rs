@@ -25,6 +25,7 @@ pub enum ValueReflection<'a> {
     HashSet(Box<HSReflection<'a>>),
     Option(Box<OptionReflection<'a>>),
     RustEnum(RustEnumReflection<'a>),
+    Box(Box<BoxReflection<'a>>),
 }
 
 #[repr(C)]
@@ -37,6 +38,11 @@ pub struct FieldReflection<'a> {
 pub struct StructReflection<'a> {
     pub name: &'a str,
     pub fields: Vec<FieldReflection<'a>>,
+}
+
+#[repr(C)]
+pub struct BoxReflection<'a> {
+    pub inner: ValueReflection<'a>,
 }
 
 #[repr(C)]
@@ -153,6 +159,12 @@ pub unsafe fn reflect_value(ptr: *mut u8, ty: &Type) -> ValueReflection<'_> {
             skip: o.skip,
         })),
         Type::RustEnum(re_mirror) => ValueReflection::RustEnum(unsafe { (re_mirror.reflect)(ptr) }),
+        Type::Box(box_mirror) => unsafe {
+            let inner_ptr = (box_mirror.get)(ptr);
+            ValueReflection::Box(Box::new(BoxReflection {
+                inner: reflect_value(inner_ptr, box_mirror.inner),
+            }))
+        },
     }
 }
 

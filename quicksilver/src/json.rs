@@ -122,6 +122,7 @@ pub fn value_to_json(vr: &ValueReflection) -> String {
             }
             format!("{{{}}}", json_parts.join(","))
         }
+        ValueReflection::Box(box_reflection) => value_to_json(&box_reflection.inner),
     }
 }
 
@@ -306,5 +307,10 @@ unsafe fn deserialize_field(walker: &mut JsonWalker, base: *mut u8, ty: &Type) {
 
             unsafe { (mirror.write)(base, index, &field_ptrs) }
         }
+        Type::Box(box_type) => unsafe {
+            let inner_space = std::alloc::alloc(box_type.inner.layout());
+            deserialize_field(walker, inner_space, box_type.inner);
+            (box_type.box_up)(base, inner_space)
+        },
     }
 }
