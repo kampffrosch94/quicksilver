@@ -270,10 +270,10 @@ fn parse_field(mut buffer: &[TokenTree]) -> Result<Field, MacroError> {
 
     let mut iter = buffer.iter();
 
-    let mut r = match (iter.next(), iter.next(), iter.next()) {
+    let r = match (iter.next(), iter.next(), iter.next()) {
         (Some(TT::Ident(ty)), None, None) => {
             let name = None;
-            let mirror = parse_mirror(&buffer, &ty.to_string(), skip)?;
+            let mirror = parse_mirror(&buffer, &ty.to_string(), skip, &substitution)?;
             Field {
                 name,
                 mirror,
@@ -285,7 +285,7 @@ fn parse_field(mut buffer: &[TokenTree]) -> Result<Field, MacroError> {
         {
             let name = Some(name.to_string());
             let buffer = &buffer[2..];
-            let mirror = parse_mirror(&buffer, &ty.to_string(), skip)?;
+            let mirror = parse_mirror(&buffer, &ty.to_string(), skip, &substitution)?;
             let ty = buffer
                 .iter()
                 .map(|it| it.to_string())
@@ -295,7 +295,7 @@ fn parse_field(mut buffer: &[TokenTree]) -> Result<Field, MacroError> {
         }
         (Some(TT::Ident(ty)), Some(TT::Punct(stair)), Some(_)) if stair.as_char() == '<' => {
             let name = None;
-            let mirror = parse_mirror(&buffer, &ty.to_string(), skip)?;
+            let mirror = parse_mirror(&buffer, &ty.to_string(), skip, &substitution)?;
             let ty = buffer
                 .iter()
                 .map(|it| it.to_string())
@@ -311,17 +311,20 @@ fn parse_field(mut buffer: &[TokenTree]) -> Result<Field, MacroError> {
         }
     };
 
-    if let Some((from, to)) = substitution {
-        if let Some(ref mut name) = r.name {
-            *name = name.replace(&from, &to);
-        }
-        r.mirror = r.mirror.replace(&from, &to);
-    }
-
     Ok(r)
 }
 
-fn parse_mirror(buffer: &[TokenTree], ty: &str, skip: bool) -> Result<String, MacroError> {
+fn parse_mirror<'a>(
+    buffer: &[TokenTree],
+    mut ty: &'a str,
+    skip: bool,
+    substitution: &'a Option<(String, String)>,
+) -> Result<String, MacroError> {
+    if let Some((from, to)) = substitution
+        && from == ty
+    {
+        ty = to;
+    }
     Ok(if buffer.len() == 1 {
         if skip {
             error!(
@@ -338,7 +341,13 @@ fn parse_mirror(buffer: &[TokenTree], ty: &str, skip: bool) -> Result<String, Ma
         result.push_str(ty);
         result.push_str("::");
         for token in &buffer[1..] {
-            result.push_str(&token.to_string());
+            let mut s = &token.to_string();
+            if let Some((from, to)) = substitution
+                && from == s
+            {
+                s = to;
+            }
+            result.push_str(s);
         }
         if skip {
             result.push_str("::EMPTY");
