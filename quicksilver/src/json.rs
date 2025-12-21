@@ -133,11 +133,7 @@ pub fn from_json<T: Quicksilver>(s: &str) -> T {
         buffer: String::new(),
     };
     unsafe {
-        match T::MIRROR {
-            Type::Struct(s) => deserialize_struct(walker, ptr as *mut u8, s),
-            ref mirror @ Type::CEnum(_) => deserialize_field(walker, ptr as *mut u8, mirror),
-            _ => panic!("Unsupported type"),
-        }
+        deserialize_field(walker, ptr as *mut u8, &T::MIRROR);
         result.assume_init()
     }
 }

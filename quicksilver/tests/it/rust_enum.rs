@@ -45,3 +45,16 @@ fn rust_enum_roundtrip_ref() {
     dbg!(&val2);
     assert_eq!(val, val2);
 }
+
+#[test]
+fn rust_enum_naked_roundtrip() {
+    let val = Ability::Attack {
+        who: "Goblin".into(),
+        damage: 33,
+    };
+    let s = reflect_ref(&val).to_json();
+    println!("{}", &s);
+    let val2 = from_json::<Ability>(&s);
+    dbg!(&val2);
+    assert_eq!(val, val2);
+}
