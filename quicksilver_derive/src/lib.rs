@@ -220,19 +220,46 @@ fn parse_fields(input: TokenStream) -> Result<Vec<Field>, MacroError> {
 
 fn parse_field(mut buffer: &[TokenTree]) -> Result<Field, MacroError> {
     let mut skip = false;
+    let mut substitution = None;
     if matches!(&buffer[0], TT::Punct(c) if c.as_char() == '#') {
         if let TT::Group(attribute_group) = &buffer[1] {
             for a in chunked(attribute_group.stream(), 2) {
-                let [name, group] = &a[..] else {
+                let [name, group_tt] = &a[..] else {
                     unreachable!()
                 };
                 if matches!(name, TT::Ident(s) if s.to_string() == "quicksilver") {
-                    let TT::Group(group) = group else {
-                        panic!("Expected group.")
+                    let TT::Group(group) = group_tt else {
+                        error_single!(group_tt, "Expected TokenTree::Group.")
                     };
-                    for attr in group.stream() {
-                        if matches!(attr, TT::Ident(s) if s.to_string() == "skip") {
+                    // dbg!(&group);
+                    let mut it = group.stream().into_iter();
+                    match (it.next(), it.next()) {
+                        (Some(TT::Ident(s)), None) if s.to_string() == "skip" => {
                             skip = true;
+                        }
+                        (Some(TT::Ident(p)), Some(ref proxy_tt @ TT::Group(ref subst_group)))
+                            if p.to_string() == "proxy" =>
+                        {
+                            let mut it = subst_group.stream().into_iter();
+                            match (it.next(), it.next(), it.next(), it.next()) {
+                                (
+                                    Some(TT::Ident(from)),
+                                    Some(TT::Punct(c)),
+                                    Some(TT::Ident(to)),
+                                    None,
+                                ) if c.as_char() == ',' => {
+                                    substitution = Some((from.to_string(), to.to_string()));
+                                }
+                                _ => {
+                                    error_single!(
+                                        &proxy_tt,
+                                        "Wrong arguments for proxy atttribute."
+                                    )
+                                }
+                            }
+                        }
+                        _ => {
+                            error_single!(group_tt, "Unknown attribute");
                         }
                     }
                 }
@@ -243,15 +270,15 @@ fn parse_field(mut buffer: &[TokenTree]) -> Result<Field, MacroError> {
 
     let mut iter = buffer.iter();
 
-    match (iter.next(), iter.next(), iter.next()) {
+    let mut r = match (iter.next(), iter.next(), iter.next()) {
         (Some(TT::Ident(ty)), None, None) => {
             let name = None;
             let mirror = parse_mirror(&buffer, &ty.to_string(), skip)?;
-            Ok(Field {
+            Field {
                 name,
                 mirror,
                 ty: ty.to_string(),
-            })
+            }
         }
         (Some(TT::Ident(name)), Some(TT::Punct(colon)), Some(TT::Ident(ty)))
             if colon.as_char() == ':' =>
@@ -264,7 +291,7 @@ fn parse_field(mut buffer: &[TokenTree]) -> Result<Field, MacroError> {
                 .map(|it| it.to_string())
                 .collect::<Vec<_>>()
                 .join("");
-            Ok(Field { name, mirror, ty })
+            Field { name, mirror, ty }
         }
         (Some(TT::Ident(ty)), Some(TT::Punct(stair)), Some(_)) if stair.as_char() == '<' => {
             let name = None;
@@ -274,7 +301,7 @@ fn parse_field(mut buffer: &[TokenTree]) -> Result<Field, MacroError> {
                 .map(|it| it.to_string())
                 .collect::<Vec<_>>()
                 .join("");
-            Ok(Field { name, mirror, ty })
+            Field { name, mirror, ty }
         }
         _ => {
             error!(
@@ -282,7 +309,16 @@ fn parse_field(mut buffer: &[TokenTree]) -> Result<Field, MacroError> {
                 "Quicksilver can't parse this."
             )
         }
+    };
+
+    if let Some((from, to)) = substitution {
+        if let Some(ref mut name) = r.name {
+            *name = name.replace(&from, &to);
+        }
+        r.mirror = r.mirror.replace(&from, &to);
     }
+
+    Ok(r)
 }
 
 fn parse_mirror(buffer: &[TokenTree], ty: &str, skip: bool) -> Result<String, MacroError> {
