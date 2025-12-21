@@ -476,7 +476,7 @@ RustEnumReflection {{
 FieldReflection {{
     name: "{name}",
     value: unsafe {{
-        reflect_value(&raw mut *{var_name} as *mut u8, &{mirror})
+        ::quicksilver::reflections::reflect_value(&raw mut *{var_name} as *mut u8, &{mirror})
     }},
 }},"#
             )
@@ -487,7 +487,7 @@ FieldReflection {{
 FieldReflection {{
     name: "{name}",
     value: unsafe {{
-        reflect_value_ref(&raw const *{var_name} as *const u8, &{mirror})
+        ::quicksilver::reflections_ref::reflect_value_ref(&raw const *{var_name} as *const u8, &{mirror})
     }},
 }},"#
             )
