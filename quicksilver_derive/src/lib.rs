@@ -499,6 +499,81 @@ FieldReflection {{
     reflect_text.push_str("}");
     reflect_ref_text.push_str("}");
 
+    let write_text = &mut String::new();
+    write_text.push_str(
+        r#"let this = this as *mut Self;
+match (variant, fields) {"#,
+    );
+
+    for (variant_idx, variant) in variants.iter().enumerate() {
+        write!(write_text, r#"({variant_idx}, ["#).unwrap();
+        for (i, field) in variant.fields.iter().enumerate() {
+            if let Some(ref name) = field.name {
+                write_text.push_str(name);
+                write_text.push(',');
+            } else {
+                write!(write_text, "val{i},").unwrap()
+            }
+        }
+        write_text.push_str("]) => {");
+        for (i, field) in variant.fields.iter().enumerate() {
+            let ty = &field.ty;
+            if let Some(ref name) = field.name {
+                write!(
+                    write_text,
+                    "let {name} = unsafe {{ Box::from_raw(*{name} as *mut {ty}) }};\n"
+                )
+                .unwrap()
+            } else {
+                write!(
+                    write_text,
+                    "let val{i} = unsafe {{ Box::from_raw(*val{i} as *mut {ty}) }};\n"
+                )
+                .unwrap()
+            }
+        }
+
+        let variant_name = &variant.name;
+        write!(
+            write_text,
+            "unsafe {{::std::ptr::write(this, Self::{variant_name} "
+        )
+        .unwrap();
+
+        let is_tuple = variant
+            .fields
+            .first()
+            .map(|it| it.name.is_none())
+            .unwrap_or(false);
+
+        if is_tuple {
+            write_text.push('(');
+            for (i, _field) in variant.fields.iter().enumerate() {
+                write!(write_text, "*val{i},").unwrap()
+            }
+            write_text.push(')');
+        } else {
+            write_text.push('{');
+            for field in variant.fields.iter() {
+                let name = field.name.as_ref().expect("field can't be None here");
+                write!(write_text, "{name}: *{name},").unwrap()
+            }
+            write_text.push('}');
+        }
+
+        write_text.push_str(",)};");
+
+        write_text.push_str("}");
+    }
+
+    write!(
+        write_text,
+        r#"
+_ => unreachable!("Illegal operation: setting enum variant {{variant}} on {enum_name}"),
+}};"#
+    )
+    .unwrap();
+
     write!(
         result,
         r#"
@@ -510,7 +585,7 @@ impl ::quicksilver::Quicksilver for {enum_name} {{
         variants: &[{variant_text}],
         reflect: |ptr| {{ {reflect_text} }},
         reflect_ref: |ptr| {{ {reflect_ref_text} }},
-        write: |this, variant, fields| {{ todo!() }},
+        write: |this, variant, fields| {{ {write_text} }},
     }});
 }}
 "#

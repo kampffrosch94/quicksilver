@@ -132,15 +132,7 @@ impl Quicksilver for Ability {
                 (1, [who, damage]) => {
                     let who = unsafe { Box::from_raw(*who as *mut String) };
                     let damage = unsafe { Box::from_raw(*damage as *mut i32) };
-                    unsafe {
-                        ::std::ptr::write(
-                            this,
-                            Self::Attack {
-                                who: *who,
-                                damage: *damage,
-                            },
-                        )
-                    };
+                    unsafe {::std::ptr::write(this, Self::Attack {who: *who, damage: *damage,},)};
                 }
                 (2, [val0]) => {
                     let val0 = unsafe { Box::from_raw(*val0 as *mut String) };
