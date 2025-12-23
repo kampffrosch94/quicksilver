@@ -28,8 +28,8 @@ https://github.com/user-attachments/assets/4ded322f-50f6-4258-b544-4dd27e22e593
 | `Option<T>`           | ✅     |
 | custom `struct`       | ✅     |
 | custom C-Style `enum` | ✅     |
-| `Box<T>`              | ⛔     |
-| regular Rust `enum`   | ⛔     |
+| `Box<T>`              | ✅     |
+| regular Rust `enum`   | ✅     |
 
 Quicksilver can be derived for structs and `repr(C)` enums via `#[derive(Quicksilver)]`.
 
