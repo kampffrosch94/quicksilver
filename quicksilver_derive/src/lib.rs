@@ -221,7 +221,7 @@ fn parse_fields(input: TokenStream) -> Result<Vec<Field>, MacroError> {
 fn parse_field(mut buffer: &[TokenTree]) -> Result<Field, MacroError> {
     let mut skip = false;
     let mut substitution = None;
-    if matches!(&buffer[0], TT::Punct(c) if c.as_char() == '#') {
+    while matches!(&buffer[0], TT::Punct(c) if c.as_char() == '#') {
         if let TT::Group(attribute_group) = &buffer[1] {
             for a in chunked(attribute_group.stream(), 2) {
                 let [name, group_tt] = &a[..] else {

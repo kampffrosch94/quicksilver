@@ -9,9 +9,15 @@ struct Point {
 }
 
 #[derive(Debug, Quicksilver)]
+/// Multi line
+/// Doc string
 struct MyData {
+    // fasdjfl
     id: u32,
+    /// Docs
     name: String,
+    /// Multi
+    /// Line Docs
     value: f32,
     location: Point,
     is_active: i32, // Using i32 to demonstrate another integer type
