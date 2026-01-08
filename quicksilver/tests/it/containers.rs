@@ -64,8 +64,6 @@ fn hm_roundtrip() {
     assert_eq!(val, val2);
 }
 
-use quicksilver::empty::EmptyContainer;
-
 #[derive(Debug, PartialEq, Quicksilver)]
 struct HMHolder2 {
     name: String,

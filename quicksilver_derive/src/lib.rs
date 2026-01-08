@@ -338,6 +338,9 @@ fn parse_mirror<'a>(
         result
     } else {
         let mut result = String::new();
+        if skip {
+            result.push_str("<");
+        }
         result.push_str(ty);
         result.push_str("::");
         for token in &buffer[1..] {
@@ -350,7 +353,7 @@ fn parse_mirror<'a>(
             result.push_str(s);
         }
         if skip {
-            result.push_str("::EMPTY");
+            result.push_str(" as ::quicksilver::empty::EmptyContainer>::EMPTY");
         } else {
             result.push_str("::MIRROR");
         }
