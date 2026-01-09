@@ -57,7 +57,7 @@ impl JsonWalker<'_> {
         }
         buffer
             .parse::<T>()
-            .expect("Couldn't parse as int: '{buffer}'")
+            .unwrap_or_else(|_| panic!("Couldn't parse as int: '{buffer}'"))
     }
 
     pub fn consume_float<T>(&mut self) -> T
@@ -78,7 +78,7 @@ impl JsonWalker<'_> {
         }
         buffer
             .parse::<T>()
-            .expect("Couldn't parse as float: '{buffer}'")
+            .unwrap_or_else(|_| panic!("Couldn't parse as float: '{buffer}'"))
     }
 
     #[track_caller]
@@ -120,11 +120,11 @@ impl JsonWalker<'_> {
     pub fn consume_bool(&mut self) -> bool {
         let Self { chars, buffer } = self;
         buffer.clear();
-        while peek(chars) != '}' && peek(chars) != ',' {
+        while peek(chars) != '}' && peek(chars) != ',' && peek(chars) != ']'{
             buffer.push(chars.next().unwrap());
         }
         buffer
             .parse::<bool>()
-            .expect("Couldn't parse as bool: '{buffer}'")
+            .unwrap_or_else(|_| panic!("Couldn't parse as bool: '{buffer}'"))
     }
 }

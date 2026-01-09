@@ -211,3 +211,19 @@ pub struct Fov(pub HashSet<Point>);
 #[derive(Debug, Quicksilver)]
 #[allow(unused, private_interfaces)]
 pub struct Fov2(pub(crate) HashSet<Point>);
+
+#[derive(Debug, PartialEq, Quicksilver)]
+struct BoolHolder {
+    val: Vec<bool>,
+}
+
+#[test]
+fn bool_roundtrip() {
+    let val = BoolHolder {
+        val: vec![true, false, true],
+    };
+    let s = reflect_ref(&val).to_json();
+    let val2 = from_json::<BoolHolder>(&s);
+    dbg!(&val2);
+    assert_eq!(val, val2);
+}
