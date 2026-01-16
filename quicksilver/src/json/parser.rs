@@ -120,7 +120,7 @@ impl JsonWalker<'_> {
     pub fn consume_bool(&mut self) -> bool {
         let Self { chars, buffer } = self;
         buffer.clear();
-        while peek(chars) != '}' && peek(chars) != ',' && peek(chars) != ']'{
+        while peek(chars) != '}' && peek(chars) != ',' && peek(chars) != ']' {
             buffer.push(chars.next().unwrap());
         }
         buffer
