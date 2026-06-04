@@ -25,6 +25,7 @@ https://github.com/user-attachments/assets/4ded322f-50f6-4258-b544-4dd27e22e593
 | `String`              | ✅     |
 | `Vec<T>`              | ✅     |
 | `HashMap<K,V>`        | ✅     |
+| `HashSet<K>`          | ✅     |
 | `Option<T>`           | ✅     |
 | custom `struct`       | ✅     |
 | custom C-Style `enum` | ✅     |
